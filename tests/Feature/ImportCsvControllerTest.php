@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Instructor;
 use App\Models\MainAdmin;
 use App\Models\Student;
+use App\Support\InstructorDepartment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +38,33 @@ class ImportCsvControllerTest extends TestCase
         $this->assertSame('A', $student->section);
         $this->assertSame('Regular', $student->student_type);
         $this->assertTrue(Hash::check('StrongPass1!', $student->password));
+    }
+
+    public function test_instructor_import_folds_the_education_programs_and_reads_the_position_column(): void
+    {
+        $csv = implode("\n", [
+            'instructor_id,firstname,lastname,email,password,department,employment_status',
+            '1001,Grace,Villanueva,grace@example.test,StrongPass1!,BSED,part-time',
+            '1002,Noel,Bacus,noel@example.test,StrongPass2!,College of Education,Regular',
+            '1003,Rita,Lim,rita@example.test,StrongPass3!,BSIT,',
+            '1004,Omar,Diaz,omar@example.test,StrongPass4!,BSIT,Consultant',
+        ]);
+
+        $this->postImport('instructors', $csv)
+            ->assertOk()
+            ->assertJsonPath('inserted', 3)
+            ->assertJsonPath('skipped', 1);
+
+        $this->assertSame(
+            [InstructorDepartment::COLLEGE_OF_EDUCATION, Instructor::EMPLOYMENT_PART_TIME],
+            $this->facultyDetails('1001'),
+        );
+        $this->assertSame(
+            [InstructorDepartment::COLLEGE_OF_EDUCATION, Instructor::EMPLOYMENT_REGULAR],
+            $this->facultyDetails('1002'),
+        );
+        // A blank position column falls back to the college's default hire.
+        $this->assertSame(['BSIT', Instructor::EMPLOYMENT_REGULAR], $this->facultyDetails('1003'));
     }
 
     public function test_import_rejects_duplicate_or_unknown_headers_before_writing(): void
@@ -88,6 +117,14 @@ class ImportCsvControllerTest extends TestCase
             ->assertJsonValidationErrors('csv_file');
 
         $this->assertDatabaseCount('registrar', 0);
+    }
+
+    /** @return array{0: string, 1: string} the stored department and position. */
+    private function facultyDetails(string $instructorId): array
+    {
+        $instructor = Instructor::where('instructor_id', $instructorId)->sole();
+
+        return [$instructor->department, $instructor->employment_status];
     }
 
     private function postImport(string $type, string $contents, string $fileName = 'import.csv')

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\ProgramSection;
+use App\Support\ListPageSize;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -52,7 +54,31 @@ class SectionController extends Controller
         $total = count($grouped);
         $progCount = collect($grouped)->pluck('program')->unique()->count();
 
+        // Section groups are assembled in PHP rather than queried, so the page
+        // has to slice them itself to get the same pager as every other listing.
+        $filtered = $this->paginate($filtered, $request);
+
         return view('mainAdmin.sections.index', compact('filtered', 'grouped', 'summary', 'programs', 'filterProg', 'filterYear', 'total', 'progCount'));
+    }
+
+    /**
+     * Page an in-memory collection the way a query builder would, so the shared
+     * table pager works on it unchanged.
+     *
+     * @param  \Illuminate\Support\Collection<int, mixed>  $items
+     */
+    private function paginate($items, Request $request): LengthAwarePaginator
+    {
+        $perPage = ListPageSize::from($request->limit);
+        $page = LengthAwarePaginator::resolveCurrentPage();
+
+        return new LengthAwarePaginator(
+            $items->forPage($page, $perPage)->values(),
+            $items->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()],
+        );
     }
 
     public function store(Request $request)

@@ -66,10 +66,6 @@
         @endforelse
     </div>
 
-    @if($messages->hasPages())
-        <footer class="admin-feed-toolbar" aria-label="Support message pagination">
-            {{ $messages->onEachSide(1)->links() }}
-        </footer>
-    @endif
+    <x-main-admin.table-pagination :paginator="$messages" label="messages" />
 </section>
 @endsection

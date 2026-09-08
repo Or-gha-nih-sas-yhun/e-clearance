@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\SectionKey;
+use App\Support\StudentSubjects;
+
 use App\Models\ClearanceVerificationToken;
 use App\Models\StudentAccount;
 use Dompdf\Dompdf;
@@ -123,16 +126,20 @@ class ClearanceFormController extends Controller
 
     private function dataFor(StudentAccount $student, bool $isRegistrar): array
     {
-        $subjects = DB::table('instructor_assignment as ia')
-            ->join('subject_codes as sc', 'sc.subject_id', '=', 'ia.subject_id')
-            ->join('instructor_account as i', 'i.instructor_id', '=', 'ia.instructor_id')
+        // Regular students take their section's block; an irregular student takes
+        // the subjects they enrolled in themselves. StudentSubjects::pairs() is
+        // that rule as one derived table, so the printed form lists exactly the
+        // subjects the student's own clearance page does.
+        $subjects = DB::query()
+            ->fromSub(StudentSubjects::pairs(), 'sp')
+            ->join('subject_codes as sc', 'sc.subject_id', '=', 'sp.subject_id')
+            ->join('instructor_account as i', 'i.instructor_id', '=', 'sp.instructor_id')
             ->leftJoin('clearance_status as cs', function ($join) use ($student) {
-                $join->on('cs.subject_id', '=', 'ia.subject_id')->on('cs.instructor_id', '=', 'ia.instructor_id')
+                $join->on('cs.subject_id', '=', 'sp.subject_id')->on('cs.instructor_id', '=', 'sp.instructor_id')
                     ->where('cs.student_id', '=', $student->student_id);
             })
-            ->where('ia.program', $student->program)->where('ia.year_level', $student->year_level)
-            ->whereRaw('LOWER(TRIM(ia.section)) = LOWER(TRIM(?))', [$student->section])
-            ->select('ia.instructor_id', 'sc.subject_code', 'sc.subject_description', 'i.firstname', 'i.lastname',
+            ->where('sp.student_id', $student->student_id)
+            ->select('sp.instructor_id', 'sc.subject_code', 'sc.subject_description', 'i.firstname', 'i.lastname',
                 DB::raw("COALESCE(cs.status, 'Pending') as status"), 'cs.remarks', 'cs.updated_at')
             ->orderBy('sc.subject_code')->get();
 
@@ -223,11 +230,7 @@ class ClearanceFormController extends Controller
     /** @return array{overallStatus: string} */
     private function verificationSummary(StudentAccount $student): array
     {
-        $assignedSubjects = DB::table('instructor_assignment')
-            ->where('program', $student->program)
-            ->where('year_level', $student->year_level)
-            ->whereRaw('LOWER(TRIM(section)) = LOWER(TRIM(?))', [$student->section])
-            ->get(['subject_id', 'instructor_id']);
+        $assignedSubjects = StudentSubjects::forStudent($student);
 
         $approvedSubjects = $assignedSubjects->filter(fn ($assignment) => DB::table('clearance_status')
             ->where('student_id', $student->student_id)

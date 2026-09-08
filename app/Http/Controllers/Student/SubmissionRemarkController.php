@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Student;
 
+use App\Support\SectionKey;
+use App\Support\StudentSubjects;
+
 use App\Http\Controllers\Controller;
 use App\Models\ClearanceStatus;
 use App\Models\StudentSubmission;
@@ -34,7 +37,8 @@ class SubmissionRemarkController extends Controller
             ->orderBy('subject_codes.subject_code')
             ->get();
 
-        $submissions = DB::table('instructor_assignment as ia')
+        $submissions = DB::query()
+            ->fromSub(StudentSubjects::pairs(), 'ia')
             ->leftJoin('subject_codes as sc', 'sc.subject_id', '=', 'ia.subject_id')
             ->leftJoin('instructor_account as iac', 'iac.instructor_id', '=', 'ia.instructor_id')
             ->leftJoin('student_submissions as ss', function ($join) use ($student) {
@@ -47,9 +51,7 @@ class SubmissionRemarkController extends Controller
                     ->on('cs.instructor_id', '=', 'ia.instructor_id')
                     ->where('cs.student_id', '=', $student->student_id);
             })
-            ->where('ia.program', $student->program)
-            ->where('ia.year_level', $student->year_level)
-            ->whereRaw('LOWER(TRIM(ia.section)) = LOWER(TRIM(?))', [$student->section])
+            ->where('ia.student_id', $student->student_id)
             ->select([
                 'ia.subject_id',
                 'sc.subject_code',
@@ -95,15 +97,10 @@ class SubmissionRemarkController extends Controller
             'remarks' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $isAssigned = DB::table('instructor_assignment')
-            ->where('subject_id', $data['subject_id'])
-            ->where('instructor_id', $data['instructor_id'])
-            ->where('program', $student->program)
-            ->where('year_level', $student->year_level)
-            ->whereRaw('LOWER(TRIM(section)) = LOWER(TRIM(?))', [$student->section])
-            ->exists();
-
-        abort_unless($isAssigned, 403);
+        abort_unless(
+            StudentSubjects::covers($student, (int) $data['subject_id'], $data['instructor_id']),
+            403,
+        );
 
         $storedFile = SecureUpload::store(
             $data['submission_file'],

@@ -4,7 +4,7 @@
 @section('content')
 <x-main-admin.page-header
     title="Admin Personnel"
-    description="Manage administrative personnel, assigned offices, and role access."
+    description="Manage administrative personnel accounts and role access."
     icon="bi bi-person-badge-fill"
     eyebrow="User management"
 >
@@ -39,7 +39,7 @@
     <div class="table-scroll">
         <table class="cms-table">
             <thead>
-                <tr><th>ID</th><th>Name</th><th>Email</th><th>Office</th><th>Role</th><th>Actions</th></tr>
+                <tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr>
             </thead>
             <tbody>
                 @forelse($personnel as $row)
@@ -47,7 +47,6 @@
                     <td style="font-family:monospace;color:var(--accent2);font-weight:700;">{{ $row->personnel_id }}</td>
                     <td>{{ $row->firstname }} {{ $row->lastname }}</td>
                     <td style="color:var(--muted);font-size:12px;">{{ $row->email }}</td>
-                    <td>{{ $row->office ?? '—' }}</td>
                     <td>{{ $validRoles[$row->role] ?? $row->role }}</td>
                     <td style="white-space:nowrap;">
                         <button class="act-edit" onclick='openEdit({{ json_encode($row) }})'><i class="bi bi-pencil-fill"></i> Edit</button>
@@ -58,12 +57,12 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="6"><div class="empty-state">No personnel records found.</div></td></tr>
+                <tr><td colspan="5"><div class="empty-state">No personnel records found.</div></td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
-    <div style="padding:16px 20px;">{{ $personnel->links() }}</div>
+    <x-main-admin.table-pagination :paginator="$personnel" label="personnel" />
 </div>
 
 <div class="modal-overlay" id="addModal">
@@ -84,16 +83,13 @@
                     <div class="fg"><label>Password <small>(optional)</small></label><input type="password" name="password" id="add_password" autocomplete="new-password" placeholder="Leave blank to auto-generate"></div>
                 </div>
                 <div class="fg"><label>Confirm Password</label><input type="password" name="password_confirmation" id="add_password_confirmation" autocomplete="new-password" placeholder="Re-enter the password"></div>
-                <div class="form-row">
-                    <div class="fg"><label>Office</label><input type="text" name="office"></div>
-                    <div class="fg"><label>Role</label>
-                        <select name="role" required>
-                            <option value="">Select role</option>
-                            @foreach($validRoles as $key => $label)
-                            <option value="{{ $key }}">{{ $label }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                <div class="fg"><label>Role</label>
+                    <select name="role" required>
+                        <option value="">Select role</option>
+                        @foreach($validRoles as $key => $label)
+                        <option value="{{ $key }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
                 </div>
                 <button type="submit" class="btn-save"><i class="bi bi-plus-circle-fill"></i> Save Personnel</button>
             </form>
@@ -119,16 +115,13 @@
                     <div class="fg"><label>New Password <small>(leave blank to keep)</small></label><input type="password" name="password" id="e_password" autocomplete="new-password"></div>
                 </div>
                 <div class="fg"><label>Confirm New Password</label><input type="password" name="password_confirmation" id="e_password_confirmation" autocomplete="new-password" placeholder="Re-enter the new password"></div>
-                <div class="form-row">
-                    <div class="fg"><label>Office</label><input type="text" name="office" id="e_office"></div>
-                    <div class="fg"><label>Role</label>
-                        <select name="role" id="e_role" required>
-                            <option value="">Select role</option>
-                            @foreach($validRoles as $key => $label)
-                            <option value="{{ $key }}">{{ $label }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                <div class="fg"><label>Role</label>
+                    <select name="role" id="e_role" required>
+                        <option value="">Select role</option>
+                        @foreach($validRoles as $key => $label)
+                        <option value="{{ $key }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
                 </div>
                 <button type="submit" class="btn-save"><i class="bi bi-check-circle-fill"></i> Update Personnel</button>
             </form>
@@ -153,7 +146,6 @@ function openEdit(person) {
     document.getElementById('e_firstname').value = person.firstname || '';
     document.getElementById('e_lastname').value = person.lastname || '';
     document.getElementById('e_email').value = person.email || '';
-    document.getElementById('e_office').value = person.office || '';
     document.getElementById('e_role').value = person.role || '';
     document.getElementById('e_password').value = '';
     document.getElementById('e_password_confirmation').value = '';

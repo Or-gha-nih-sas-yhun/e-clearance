@@ -71,7 +71,7 @@
             </tbody>
         </table>
     </div>
-    <div style="padding:16px 20px;">{{ $treasurers->links() }}</div>
+    <x-main-admin.table-pagination :paginator="$treasurers" label="treasurers" />
 </div>
 
 <div class="modal-overlay" id="addModal">

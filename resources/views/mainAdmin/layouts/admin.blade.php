@@ -153,6 +153,7 @@
             </a>
             <div class="nav-section">Management</div>
             <a href="{{ route('students.index') }}" class="nav-link {{ request()->routeIs('students*') ? 'active' : '' }}"><i class="bi bi-people"></i> Students</a>
+            <a href="{{ route('student-registry.index') }}" class="nav-link {{ request()->routeIs('student-registry*') ? 'active' : '' }}"><i class="bi bi-person-vcard"></i> Registration List</a>
             <a href="{{ route('instructors.index') }}" class="nav-link {{ request()->routeIs('instructors*') ? 'active' : '' }}"><i class="bi bi-person-video3"></i> Instructors</a>
             <a href="{{ route('personnel.index') }}" class="nav-link {{ request()->routeIs('personnel*') ? 'active' : '' }}"><i class="bi bi-person-badge"></i> Admin Personnel</a>
             <a href="{{ route('registrar.index') }}" class="nav-link {{ request()->routeIs('registrar*') ? 'active' : '' }}"><i class="bi bi-building"></i> Registrar</a>
@@ -170,6 +171,7 @@
         <div class="sidebar-account-group">
             <div class="nav-section">Account</div>
             <a href="{{ route('profile.edit') }}" class="nav-link {{ request()->routeIs('profile.*') ? 'active' : '' }}"><i class="bi bi-person-gear"></i> Account Settings</a>
+            <a href="{{ route('settings.index') }}" class="nav-link {{ request()->routeIs('settings.*') ? 'active' : '' }}"><i class="bi bi-sliders"></i> System Settings</a>
             <form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="sidebar-action"><i class="bi bi-box-arrow-right"></i> Log Out</button></form>
         </div>
     </div>

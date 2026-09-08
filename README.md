@@ -55,6 +55,15 @@ The preflight intentionally fails for local/development configuration. A
 production launch is blocked until it passes and every reported manual check
 has been verified.
 
+## System documentation
+
+- [Entity-relationship diagram](docs/ENTITY_RELATIONSHIP_DIAGRAM.md)
+- [Complete DBML ERD source](docs/clearance-db-erd.dbml)
+- [Draw.io ERD](docs/clearance-db-erd.drawio)
+- [Draw.io context flow diagram](docs/clearance-context-flow-diagram.drawio)
+- [Draw.io data flow diagram](docs/clearance-data-flow-diagram-organized.drawio)
+- [Draw.io use case diagram](docs/clearance-use-case-diagram.drawio)
+
 ## Security reports
 
 Report suspected vulnerabilities privately to the system owner or designated

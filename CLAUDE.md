@@ -71,6 +71,119 @@ given browser. A correct password alone never opens a session.
   `$recoveryPortal`; the student portal has its own login template and hardcodes
   them.
 
+## Student self-registration
+
+Students create their own portal account, but only if the college has listed
+them first. `student_registry` is that roster: one row per
+(`student_id`, `ms_account`), with `status` `inactive` (may register) or
+`active` (already has an account).
+
+- `App\Http\Controllers\Student\RegistrationController` runs the three steps —
+  enter the Microsoft account, enter the emailed six-digit code, fill the form.
+  Steps 1–2 are panels on the student login page; step 3 is its own page
+  (`student/register`, `student.auth.register`) because the form is nine fields.
+- **The form's identity fields are not trusted.** `student_id` and the email are
+  read back from the verified session, never from the request — the inputs are
+  only visually locked, and `StudentSelfRegistrationTest` posts a tampered
+  `student_id`/`email` to prove the submitted values are ignored.
+- Every table is MyISAM, so `DB::transaction()` rolls nothing back. Registration
+  therefore *claims* the roster row with a conditional
+  `update(...)->where('status','inactive')` and checks the affected-row count
+  before creating the account, reverting the row if the insert throws. That
+  compare-and-set is what stops a replayed session creating two accounts.
+- Deleting a student account flips its roster row back to `inactive`
+  (`RecordPurge::student`) — the row belongs to the college, not the student, so
+  it is re-opened rather than deleted. Main Admin therefore *cannot* set an entry
+  back to `inactive` or delete it while a `student_account` still exists.
+- Main Admin manages the roster at `mainAdmin/student-registry`
+  (`student-registry.index`) and can bulk-load it with the `student_registry`
+  CSV type (`student_id,ms_account,status`).
+- **The table needs creating by hand on any deployed database** — deploys never
+  migrate. `database/sql/student_registry.sql` is the script; until it exists,
+  reads are guarded by `Schema::hasTable()`, the admin page explains itself, and
+  registration refuses politely instead of 500ing.
+
+## End-of-term maintenance (Main Admin -> System Settings)
+
+`mainAdmin/settings` (`settings.index`) holds the two irreversible operations
+that let the system survive past one school year. `App\Support\SystemMaintenance`
+does the work; `SystemSettingsController` only gates it.
+
+- **Promotion** moves every *active* student up a year. It deactivates fourth
+  years **first**, then bumps 3->4, 2->3, 1->2 in that order — promoting 3->4
+  before deactivating would sweep the just-promoted third years out with the
+  real graduates. Inactive students are skipped entirely so a graduate never
+  keeps advancing.
+- Graduating sets `student_account.status = 'inactive'` and re-opens the
+  student's `student_registry` row. **Nothing is deleted** — the account keeps
+  its clearance history, and `Student\AuthController::accountIsDeactivated()`
+  blocks sign-in (checked *after* the password, so the login form cannot be used
+  to enumerate deactivated accounts).
+- **Clearance reset** clears the five clearance tables and deletes the uploaded
+  files. Files go **before** their rows: the rows carry `file_path`, so deleting
+  rows first would strand every file on disk with no record of where it is. The
+  archive CSV is built before anything is deleted and returned as the response,
+  so a reset always hands back a copy of what it removed.
+- Every action shows live row/file counts and refuses to run unless its exact
+  phrase is typed (`PROMOTE STUDENTS` / `RESET CLEARANCE`). The phrases differ
+  deliberately, and `SystemSettingsTest` proves one cannot fire the other.
+- `status`/`deactivated_at` need adding by hand on a deployed database
+  (`database/sql/student_account_status.sql`) — deploys never migrate. Without
+  the column, promotion is disabled and the page explains why rather than
+  silently graduating nobody.
+
+## Instructor faculty details
+
+Two things about `instructor_account` that no other portal shares.
+
+- **Position.** `employment_status` is `Regular` or `Part Timer`
+  (`Instructor::EMPLOYMENT_STATUSES`). It needs adding by hand on a deployed
+  database (`database/sql/instructor_employment_status.sql`) — deploys never
+  migrate — so every read and write is gated on
+  `Instructor::tracksEmploymentStatus()`: without the column the field, the
+  filter and the table column disappear and the add form says why, instead of
+  every save failing. Only Main Admin sets it; the instructor's own account
+  panel shows it disabled.
+- **BSED and BEED are one department here.** They are still two separate
+  student programs everywhere else — `ImportCsvController::PROGRAMS`,
+  sections, assignments, subject codes and `StudentController` are untouched —
+  but instructors belong to the *College of Education*.
+  `App\Support\InstructorDepartment` owns that: `OPTIONS` is what the dropdowns
+  offer, `canonical()` folds a stored `'BSED'`/`'BEED'` onto the college for
+  display and before every write, `accepted()` is the validation list (options
+  plus the two legacy values, so a pre-merge row can still be saved), and
+  `storedValues()` expands a filter on the college back to all three. The merge
+  is safe precisely because **nothing scopes on `instructor_account.department`**
+  — an instructor reaches students through `instructor_assignment`, never
+  through their department — so it moves a label and not who sees whom.
+  Rows are rewritten opportunistically as each one is saved; the optional
+  `UPDATE` at the end of the SQL script does the rest.
+
+## Subject assignments (Main Admin)
+
+`mainAdmin/assignments` is a three-step drill-down, not a flat list, and every
+step is one query string on the same `assignments.index` route so it can be
+linked and returned to after a save.
+
+- `?` -> the four faculty cards; `?department=X` -> that faculty's instructors;
+  `?department=X&instructor=ID` -> that instructor's own add form and subject
+  list. `?view=all` is the old college-wide filterable table, kept for a
+  whole-college look; its forms carry `return_view=all` so a save or delete
+  lands back there instead of in the drill-down.
+- The cards are **instructor faculties** (`InstructorDepartment::OPTIONS`, BSED
+  and BEED merged), while an assignment's `program` is a **student program** and
+  stays one of the five. A College of Education instructor is assigned to BSED
+  or BEED sections individually — do not merge the program dropdown.
+- `requestedInstructor()` only accepts an instructor who is actually in the
+  named department, so a hand-edited URL falls back to the roster rather than
+  captioning someone under a faculty they are not in. Anyone whose department is
+  not one of the four is collected in a visible `Unassigned` card instead of
+  disappearing from the page.
+- The subject dropdown is filtered client-side to the chosen program and year,
+  mirroring `ensureSubjectScope()`, so the form cannot build the combination the
+  server would reject. Sections come from `ProgramSection` the same way
+  (`ensureManagedSections()`).
+
 ## Clearance domain
 
 Two separate status tables — don't conflate them:
@@ -96,9 +209,64 @@ Authorization is `StudentAccountPolicy` (`reviewSubject`/`reviewOffice`/
 `reviewTreasury`/`reviewRegistrar`) delegating scope checks to
 `App\Support\ClearanceAccess`.
 
+Treasurer scope, both directions: a **department** treasurer acts only on
+students whose `program` equals their `department`; a **section** treasurer only
+on their exact program + year_level + section. Students never target a treasurer
+directly — a submission writes one `office_clearance_status` row for the *role*
+(`approver_id` is seeded with the student's own id because the column is NOT
+NULL), and `scopeTreasurerStudents()` decides which treasurer ever sees it.
+
+**Never compare section names with plain string equality.** `section` is free
+text on every form and importer that writes it (`'section' => 'string|max:50'`),
+so one section is stored as `SOUTHEAST` by the Main Admin dropdowns and
+`South East` by hand — the treasurers table already holds both spellings.
+`App\Support\SectionKey` is the only correct comparison: `of()`/`matches()` in
+PHP and `sql()` for queries, all lowercasing and stripping spaces, hyphens and
+underscores. `sql()` uses nested `REPLACE()`, which both MySQL and SQLite
+support. Getting this wrong scopes a treasurer or an assigned instructor away
+from their own students *silently* — an empty list, no error.
+
 **Asymmetry to remember:** setting a clearance back to `Pending` runs no
 prerequisite check; approving does. So a record can be reverted but then refuse to
 re-approve — that is the rule working, not a bug.
+
+## Irregular students pick their own subjects
+
+A regular student's subjects are their section's block in `instructor_assignment`.
+An **irregular** student (`student_account.student_type = 'Irregular'`) is not on
+that block, so they declare each subject themselves together with the instructor
+who will clear it. Those choices are the rows in `irregular_enrollment`.
+
+- `App\Support\StudentSubjects` is the single answer to "which (subject,
+  instructor) pairs does this student clear?" — `forStudent()` for one student,
+  `covers()` for one pair, and `pairs()` as a derived table
+  (`DB::query()->fromSub(StudentSubjects::pairs(), 'sp')`) for every listing.
+  The two sources are **mutually exclusive**: an irregular student's section
+  block does not apply to them at all, because clearing subjects they are not
+  taking is exactly what the manual list exists to avoid.
+- Six places used to hand-roll the regular half of that query and silently
+  excluded irregular students — the student's clearance page, the submit gate
+  (`ClearanceWorkflow::instructorIsAssigned`), the dean/registrar prerequisite
+  (`allInstructorClearancesApproved`), the printed form, the QR verification,
+  and every instructor listing. All six go through `StudentSubjects` now, so a
+  student's own page and their instructor's listing can never disagree.
+- `Student\SubjectEnrollmentController` (`student/my-subjects`,
+  `student.subjects.*`) is the picker. The instructors offered for a subject are
+  only those with an `instructor_assignment` for it, in **any** section — so a
+  student can never route their clearance to someone who does not teach it, and
+  the server re-checks that on submit rather than trusting the dropdown.
+- Dropping a subject purges its clearance row, remarks and uploaded file
+  (`RecordPurge::enrollment`); a stranded `clearance_status` row would keep
+  counting toward the dean and registrar prerequisite for a subject the student
+  no longer takes. An **Approved** subject cannot be dropped — the instructor
+  has to set it back to Pending first.
+- Chat needed no change: `ChatDirectory` already counted `irregular_enrollment`
+  in both directions (`instructorTeaches`, `narrowToTeachingInstructors`,
+  `scopeInstructorStudents`), so a student and their chosen instructor can reach
+  each other as soon as the enrolment row exists.
+- Everything is guarded with `Schema::hasTable()`/`hasColumn()`: on a database
+  without `irregular_enrollment` or without `student_account.student_type`,
+  every student is treated as regular and the system behaves exactly as before.
 
 ## Cross-role chat
 
@@ -173,7 +341,7 @@ display name across the seven tables, one query per portal.
 ## Commands
 
 ```bash
-php artisan test                          # 203 tests, all should pass
+php artisan test                          # 282 tests, all should pass
 php artisan test --filter=SomeTest        # prefer this while iterating
 npm run build                             # vite -> public/build
 php artisan security:preflight --document-root=/path/to/public

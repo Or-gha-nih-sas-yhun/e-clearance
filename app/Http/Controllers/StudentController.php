@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ProgramSection;
 use App\Models\Student;
+use App\Support\ListPageSize;
 use App\Support\PersonName;
 use App\Support\RecordPurge;
 use App\Support\StrongPassword;
@@ -39,7 +40,7 @@ class StudentController extends Controller
         }
 
         $order = in_array($request->order, ['ASC', 'DESC']) ? $request->order : 'DESC';
-        $limit = in_array($request->limit, [10, 25, 50, 100]) ? (int) $request->limit : 25;
+        $limit = ListPageSize::from($request->limit);
 
         $students = $query->orderBy('id', $order)->paginate($limit)->withQueryString();
 

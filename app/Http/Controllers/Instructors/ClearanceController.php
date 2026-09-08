@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Instructors;
 
+use App\Support\SectionKey;
+use App\Support\StudentSubjects;
+
 use App\Http\Controllers\Controller;
 use App\Models\ClearanceStatus;
 use App\Models\Notification;
@@ -85,12 +88,9 @@ class ClearanceController extends Controller
         $requestedItems = collect($data['items'])
             ->unique(fn (array $item) => $item['student'].'|'.$item['subject'])
             ->values();
-        $allowedPairs = DB::table('instructor_assignment as ia')
-            ->join('student_account as sa', function ($join) {
-                $join->on('sa.program', '=', 'ia.program')
-                    ->on('sa.year_level', '=', 'ia.year_level')
-                    ->whereRaw('LOWER(TRIM(sa.section)) = LOWER(TRIM(ia.section))');
-            })
+        $allowedPairs = DB::query()
+            ->fromSub(StudentSubjects::pairs(), 'ia')
+            ->join('student_account as sa', 'sa.student_id', '=', 'ia.student_id')
             ->where('ia.instructor_id', $instructorId)
             ->where(function ($query) use ($requestedItems) {
                 foreach ($requestedItems as $item) {

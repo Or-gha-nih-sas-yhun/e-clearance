@@ -68,6 +68,7 @@
             </tbody>
         </table>
     </div>
+    <x-main-admin.table-pagination :paginator="$filtered" label="section groups" />
 </div>
 
 <div class="modal-overlay" id="addModal">

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Registrar;
+use App\Support\ListPageSize;
 use App\Support\PersonName;
 use App\Support\RecordPurge;
 use App\Support\StrongPassword;
@@ -25,7 +26,7 @@ class RegistrarController extends Controller
                     ->orWhere('registrar_id', 'like', "%{$request->search}%");
             });
         }
-        $registrars = $query->orderByDesc('id')->paginate(25)->withQueryString();
+        $registrars = $query->orderByDesc('id')->paginate(ListPageSize::from($request->limit))->withQueryString();
 
         return view('mainAdmin.registrar.index', compact('registrars'));
     }

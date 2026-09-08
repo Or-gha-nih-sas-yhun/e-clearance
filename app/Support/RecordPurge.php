@@ -75,6 +75,15 @@ final class RecordPurge
             self::deleteBy($table, 'student_id', $studentId);
         }
 
+        // The registration roster belongs to the college, not to the student, so
+        // the row stays — but it is re-opened, otherwise a deleted student could
+        // never register again from the same Microsoft account.
+        if (Schema::hasTable('student_registry')) {
+            DB::table('student_registry')
+                ->where('student_id', $studentId)
+                ->update(['status' => 'inactive', 'registered_at' => null, 'updated_at' => now()]);
+        }
+
         self::accountTraces('student', $studentId, $email);
     }
 
@@ -120,6 +129,36 @@ final class RecordPurge
      * Removing it clears the clearance rows it produced for the students in that
      * section, and nothing belonging to other sections.
      */
+    /**
+     * Everything one irregular enrolment owns.
+     *
+     * Dropping a subject from an irregular student's list has to take its
+     * clearance record, remarks and uploaded file with it — a stranded
+     * `clearance_status` row would keep counting towards the dean and registrar
+     * prerequisite for a subject the student is no longer enrolled in.
+     */
+    public static function enrollment(string $studentId, int $subjectId, string $instructorId): void
+    {
+        foreach (['clearance_status', 'instructor_remarks', 'student_submissions', 'irregular_enrollment'] as $table) {
+            if (! Schema::hasTable($table)) {
+                continue;
+            }
+
+            $scope = fn () => DB::table($table)
+                ->where('student_id', $studentId)
+                ->where('subject_id', $subjectId)
+                ->where('instructor_id', $instructorId);
+
+            if ($table === 'student_submissions' && Schema::hasColumn($table, 'file_path')) {
+                foreach ($scope()->pluck('file_path') as $path) {
+                    SecureUpload::delete($path);
+                }
+            }
+
+            $scope()->delete();
+        }
+    }
+
     public static function instructorAssignment(object $assignment): void
     {
         if (! Schema::hasTable('student_account')) {

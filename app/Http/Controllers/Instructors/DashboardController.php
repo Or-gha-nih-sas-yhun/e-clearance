@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Instructors;
 
+use App\Support\SectionKey;
+use App\Support\StudentSubjects;
+
 use App\Http\Controllers\Controller;
 use App\Models\ClearanceStatus;
 use App\Models\Instructor;
@@ -10,6 +13,7 @@ use App\Models\InstructorRemark;
 use App\Models\Notification;
 use App\Models\StudentAccount;
 use App\Models\StudentSubmission;
+use App\Support\InstructorDepartment;
 use App\Support\PersonName;
 use App\Support\SecureUpload;
 use Illuminate\Http\Request;
@@ -44,26 +48,17 @@ class DashboardController extends Controller
         $instructor = Auth::guard('instructor')->user();
         $instructorId = $instructor->instructor_id;
 
-        $optPrograms = InstructorAssignment::query()
-            ->join('student_account as sa', function ($j) {
-                $j->on('sa.program', '=', 'instructor_assignment.program')
-                    ->on('sa.year_level', '=', 'instructor_assignment.year_level')
-                    ->whereRaw('LOWER(TRIM(sa.section)) = LOWER(TRIM(instructor_assignment.section))');
-            })
-            ->where('instructor_assignment.instructor_id', $instructorId)
+        // Every option list is derived from the students this instructor
+        // actually clears, so an irregular student's program, year or section
+        // appears in the filters even when it is outside the taught block.
+        $optPrograms = $this->clearedStudents($instructorId)
             ->distinct()->orderBy('sa.program')->pluck('sa.program');
 
-        $optYears = InstructorAssignment::query()
-            ->join('student_account as sa', function ($j) {
-                $j->on('sa.program', '=', 'instructor_assignment.program')
-                    ->on('sa.year_level', '=', 'instructor_assignment.year_level')
-                    ->whereRaw('LOWER(TRIM(sa.section)) = LOWER(TRIM(instructor_assignment.section))');
-            })
-            ->where('instructor_assignment.instructor_id', $instructorId)
+        $optYears = $this->clearedStudents($instructorId)
             ->distinct()->orderBy('sa.year_level')->pluck('sa.year_level');
 
-        $optSections = InstructorAssignment::where('instructor_id', $instructorId)
-            ->distinct()->orderBy('section')->pluck('section');
+        $optSections = $this->clearedStudents($instructorId)
+            ->distinct()->orderBy('sa.section')->pluck('sa.section');
 
         $fProgram = $request->query('program', '');
         $fYear = $request->query('year_level', '');
@@ -72,12 +67,9 @@ class DashboardController extends Controller
         $fSearch = $request->query('search', '');
         $fSort = $request->query('sort', 'desc') === 'asc' ? 'asc' : 'desc';
 
-        $students = DB::table('instructor_assignment as ia')
-            ->join('student_account as sa', function ($j) {
-                $j->on('sa.program', '=', 'ia.program')
-                    ->on('sa.year_level', '=', 'ia.year_level')
-                    ->whereRaw('LOWER(TRIM(sa.section)) = LOWER(TRIM(ia.section))');
-            })
+        $students = DB::query()
+            ->fromSub(StudentSubjects::pairs(), 'ia')
+            ->join('student_account as sa', 'sa.student_id', '=', 'ia.student_id')
             ->join('subject_codes as sc', 'sc.subject_id', '=', 'ia.subject_id')
             ->leftJoin('clearance_status as cs', function ($j) {
                 $j->on('cs.student_id', '=', 'sa.student_id')
@@ -87,7 +79,7 @@ class DashboardController extends Controller
             ->where('ia.instructor_id', $instructorId)
             ->when($fProgram, fn ($q) => $q->where('sa.program', $fProgram))
             ->when($fYear, fn ($q) => $q->where('sa.year_level', $fYear))
-            ->when($fSection, fn ($q) => $q->whereRaw('LOWER(TRIM(sa.section)) = LOWER(TRIM(?))', [$fSection]))
+            ->when($fSection, fn ($q) => $q->whereRaw(SectionKey::sql('sa.section').' = '.SectionKey::sql('?'), [$fSection]))
             ->when($fStatus === 'Approved', fn ($q) => $q->where('cs.status', 'Approved'))
             ->when($fStatus === 'Pending', fn ($q) => $q->whereRaw("COALESCE(cs.status,'Pending') <> 'Approved'"))
             ->when($fSearch, function ($q) use ($fSearch) {
@@ -100,7 +92,7 @@ class DashboardController extends Controller
             ->select([
                 'sa.student_id', 'sa.firstname', 'sa.lastname', 'sa.program', 'sa.year_level',
                 'sa.section', 'sa.student_type', 'sc.subject_id', 'sc.subject_code',
-                'sc.subject_description', 'sc.semester', 'ia.section as assigned_section',
+                'sc.subject_description', 'sc.semester', 'sa.section as assigned_section',
                 DB::raw("CASE WHEN cs.status='Approved' THEN 'Approved' ELSE 'Pending' END as clearance_status"),
                 'cs.remarks', 'cs.updated_at as cleared_at',
             ])
@@ -122,11 +114,10 @@ class DashboardController extends Controller
         $subjects = InstructorAssignment::with('subject')
             ->select('instructor_assignment.*')
             ->selectSub(function ($query) {
-                $query->from('student_account as assignment_students')
-                    ->selectRaw('COUNT(*)')
-                    ->whereColumn('assignment_students.program', 'instructor_assignment.program')
-                    ->whereColumn('assignment_students.year_level', 'instructor_assignment.year_level')
-                    ->whereRaw('LOWER(TRIM(assignment_students.section)) = LOWER(TRIM(instructor_assignment.section))');
+                $query->fromSub(StudentSubjects::pairs(), 'assignment_students')
+                    ->selectRaw('COUNT(DISTINCT assignment_students.student_id)')
+                    ->whereColumn('assignment_students.subject_id', 'instructor_assignment.subject_id')
+                    ->whereColumn('assignment_students.instructor_id', 'instructor_assignment.instructor_id');
             }, 'student_count')
             ->where('instructor_id', $instructorId)
             ->orderBy('program')
@@ -134,12 +125,9 @@ class DashboardController extends Controller
             ->orderBy('section')
             ->get();
 
-        $stats = DB::table('instructor_assignment as ia')
-            ->join('student_account as sa', function ($j) {
-                $j->on('sa.program', '=', 'ia.program')
-                    ->on('sa.year_level', '=', 'ia.year_level')
-                    ->whereRaw('LOWER(TRIM(sa.section)) = LOWER(TRIM(ia.section))');
-            })
+        $stats = DB::query()
+            ->fromSub(StudentSubjects::pairs(), 'ia')
+            ->join('student_account as sa', 'sa.student_id', '=', 'ia.student_id')
             ->leftJoin('clearance_status as cs', function ($j) {
                 $j->on('cs.student_id', '=', 'sa.student_id')
                     ->on('cs.subject_id', '=', 'ia.subject_id')
@@ -158,6 +146,15 @@ class DashboardController extends Controller
             'students', 'subjects', 'stats', 'totalSubmissions',
             'fProgram', 'fYear', 'fSection', 'fStatus', 'fSearch', 'fSort'
         );
+    }
+
+    /** The students this instructor clears, regular block and irregular picks alike. */
+    private function clearedStudents(string $instructorId)
+    {
+        return DB::query()
+            ->fromSub(StudentSubjects::pairs(), 'sp')
+            ->join('student_account as sa', 'sa.student_id', '=', 'sp.student_id')
+            ->where('sp.instructor_id', $instructorId);
     }
 
     // POST /instructor/remarks  (ajax_send_remark)
@@ -246,7 +243,7 @@ class DashboardController extends Controller
             'middlename' => PersonName::optionalRules(),
             'suffix' => 'nullable|string|max:10',
             'email' => ['required', 'email', Rule::unique('instructor_account', 'email')->ignore($instructor->getAttribute('instructor_id'), 'instructor_id')],
-            'department' => ['required', Rule::in(['BSIT', 'BSED', 'BEED', 'BSBA', 'BSHM'])],
+            'department' => ['required', Rule::in(InstructorDepartment::accepted())],
             'current_password' => 'nullable|string',
             'new_password' => ['nullable', Password::min(8)->mixedCase()->numbers()->symbols()],
             'confirm_password' => 'nullable|same:new_password',
@@ -270,7 +267,7 @@ class DashboardController extends Controller
         $instructor->fill([
             'firstname' => $data['firstname'], 'middlename' => $data['middlename'] ?? null,
             'lastname' => $data['lastname'],  'suffix' => $data['suffix'] ?? null,
-            'email' => $data['email'],     'department' => $data['department'],
+            'email' => $data['email'],     'department' => InstructorDepartment::canonical($data['department']),
         ])->save();
 
         return response()->json([

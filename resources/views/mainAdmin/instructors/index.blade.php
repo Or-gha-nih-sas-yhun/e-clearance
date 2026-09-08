@@ -28,18 +28,20 @@
                     @endforeach
                 </select>
             </div>
+            @if($employmentAvailable)
+            <div class="col-md-2">
+                <select name="employment">
+                    <option value="">All Positions</option>
+                    @foreach($employmentStatuses as $status)
+                    <option value="{{ $status }}" {{ request('employment') === $status ? 'selected' : '' }}>{{ $status }}</option>
+                    @endforeach
+                </select>
+            </div>
+            @endif
             <div class="col-md-2">
                 <select name="order">
                     <option value="DESC" {{ request('order','DESC')==='DESC' ? 'selected' : '' }}>Newest</option>
                     <option value="ASC" {{ request('order')==='ASC' ? 'selected' : '' }}>Oldest</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <select name="limit">
-                    <option value="10" {{ request('limit')==10 ? 'selected' : '' }}>10</option>
-                    <option value="25" {{ request('limit')==25 ? 'selected' : '' }}>25</option>
-                    <option value="50" {{ request('limit')==50 ? 'selected' : '' }}>50</option>
-                    <option value="100" {{ request('limit')==100 ? 'selected' : '' }}>100</option>
                 </select>
             </div>
             <div class="col-md-2">
@@ -58,7 +60,7 @@
         <table class="cms-table">
             <thead>
                 <tr>
-                    <th>ID</th><th>Name</th><th>Email</th><th>Department</th><th>Actions</th>
+                    <th>ID</th><th>Name</th><th>Email</th><th>Department</th>@if($employmentAvailable)<th>Position</th>@endif<th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -68,6 +70,9 @@
                     <td>{{ $row->firstname }} {{ $row->middlename ? $row->middlename.' ' : '' }}{{ $row->lastname }} {{ $row->suffix }}</td>
                     <td style="color:var(--muted);font-size:12px;">{{ $row->email }}</td>
                     <td>{{ $row->department }}</td>
+                    @if($employmentAvailable)
+                    <td><span class="badge-type {{ $row->employment_status === \App\Models\Instructor::EMPLOYMENT_REGULAR ? 'badge-regular' : 'badge-irregular' }}">{{ $row->employment_status ?: \App\Models\Instructor::EMPLOYMENT_REGULAR }}</span></td>
+                    @endif
                     <td style="white-space:nowrap;">
                         <button class="act-edit" onclick='openEdit({{ json_encode($row) }})'><i class="bi bi-pencil-fill"></i> Edit</button>
                         <form method="POST" action="{{ route('instructors.destroy', $row->instructor_id) }}" style="display:inline;" data-confirm-title="Confirm Deletion" data-confirm="Are you sure you want to delete this instructor?&#10;This action cannot be undone." data-confirm-button="Yes, Delete">
@@ -81,12 +86,12 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="5"><div class="empty-state">No instructors found.</div></td></tr>
+                <tr><td colspan="{{ $employmentAvailable ? 6 : 5 }}"><div class="empty-state">No instructors found.</div></td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
-    <div style="padding:16px 20px;">{{ $instructors->links() }}</div>
+    <x-main-admin.table-pagination :paginator="$instructors" label="instructors" />
 </div>
 
 <div class="modal-overlay" id="addModal">
@@ -123,7 +128,20 @@
                             @endforeach
                         </select>
                     </div>
+                    @if($employmentAvailable)
+                    <div class="fg"><label>Position</label>
+                        <select name="employment_status" required>
+                            <option value="">Choose position</option>
+                            @foreach($employmentStatuses as $status)
+                            <option value="{{ $status }}">{{ $status }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @endif
                 </div>
+                @unless($employmentAvailable)
+                <p style="font-size:12px;color:var(--muted);margin:-4px 0 12px;">Position (Regular / Part Timer) is unavailable: <code>instructor_account</code> has no <code>employment_status</code> column yet. Run <code>database/sql/instructor_employment_status.sql</code> to add it.</p>
+                @endunless
                 <button type="submit" class="btn-save"><i class="bi bi-plus-circle-fill"></i> Save Instructor</button>
             </form>
         </div>
@@ -158,6 +176,18 @@
                         </select>
                     </div>
                 </div>
+                @if($employmentAvailable)
+                <div class="form-row">
+                    <div class="fg"><label>Position</label>
+                        <select name="employment_status" id="e_employment_status" required>
+                            <option value="">Choose position</option>
+                            @foreach($employmentStatuses as $status)
+                            <option value="{{ $status }}">{{ $status }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                @endif
                 <div class="form-row">
                     <div class="fg"><label>New Password <small>(leave blank to keep current)</small></label><input type="password" name="password" id="e_password" autocomplete="new-password"></div>
                     <div class="fg"><label>Confirm New Password</label><input type="password" name="password_confirmation" id="e_password_confirmation" autocomplete="new-password" placeholder="Re-enter the new password"></div>
@@ -188,6 +218,8 @@ function openEdit(instructor) {
     document.getElementById('e_suffix').value = instructor.suffix || '';
     document.getElementById('e_email').value = instructor.email || '';
     document.getElementById('e_department').value = instructor.department || '';
+    const position = document.getElementById('e_employment_status');
+    if (position) { position.value = instructor.employment_status || '{{ \App\Models\Instructor::EMPLOYMENT_REGULAR }}'; }
     document.getElementById('e_password').value = '';
     document.getElementById('e_password_confirmation').value = '';
     document.getElementById('editModal').classList.add('show');

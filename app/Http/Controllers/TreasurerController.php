@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ProgramSection;
 use App\Models\Treasurer;
+use App\Support\ListPageSize;
 use App\Support\PersonName;
 use App\Support\RecordPurge;
 use App\Support\StrongPassword;
@@ -41,7 +42,7 @@ class TreasurerController extends Controller
             $query->where('section', $request->section);
         }
 
-        $treasurers = $query->orderByDesc('id')->paginate(25)->withQueryString();
+        $treasurers = $query->orderByDesc('id')->paginate(ListPageSize::from($request->limit))->withQueryString();
         $sections = ProgramSection::orderBy('program')->orderBy('year_level')->orderBy('section')->get();
 
         return view('mainAdmin.treasurers.index', compact('treasurers', 'sections'));

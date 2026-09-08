@@ -14,7 +14,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -78,6 +80,18 @@ class AuthController extends Controller
 
         if (! $student || ! Hash::check($credentials['password'], $student->password)) {
             $security->fail('student_id');
+        }
+
+        // Checked only after the password, so an outsider cannot use the login
+        // form to learn which student accounts have been deactivated.
+        if ($this->accountIsDeactivated($student)) {
+            AuditLogger::record('authentication.blocked', 'student', null, 'student_account', $student->student_id, [
+                'reason' => 'account_inactive',
+            ]);
+
+            throw ValidationException::withMessages([
+                'student_id' => 'This student account is inactive. Please contact the registrar.',
+            ]);
         }
 
         $security->clear();
@@ -235,6 +249,17 @@ class AuthController extends Controller
         $request->session()->forget('student_password_recovery');
 
         return redirect()->route('student.login');
+    }
+
+    /**
+     * A graduated or suspended student keeps every record but cannot sign in.
+     * Guarded on the column: deploys never migrate, so a database may not have
+     * it yet, and there a student can never be inactive.
+     */
+    private function accountIsDeactivated(StudentAccount $student): bool
+    {
+        return Schema::hasColumn('student_account', 'status')
+            && strtolower(trim((string) ($student->status ?? 'active'))) === 'inactive';
     }
 
     public function logout(Request $request)

@@ -11,6 +11,8 @@ use App\Http\Controllers\Student\AuthController as StudentAuthController;
 use App\Http\Controllers\Student\ChatSupportController;
 use App\Http\Controllers\Student\ClearanceUpdatesController;
 use App\Http\Controllers\Student\DashboardController as StudentDashboardController;
+use App\Http\Controllers\Student\RegistrationController as StudentRegistrationController;
+use App\Http\Controllers\Student\SubjectEnrollmentController;
 use App\Http\Controllers\Student\SubmissionRemarkController;
 use Illuminate\Support\Facades\Route;
 
@@ -38,6 +40,16 @@ Route::prefix('student')->name('student.')->group(function () {
         ->middleware('throttle:password-reset')->name('password-recovery.reset');
     Route::post('password-recovery/cancel', [StudentAuthController::class, 'cancelPasswordRecovery'])
         ->name('password-recovery.cancel');
+
+    // Self-registration, gated on the student_registry roster.
+    Route::post('register/send-code', [StudentRegistrationController::class, 'sendCode'])
+        ->middleware('throttle:otp-send')->name('register.send-code');
+    Route::post('register/verify-code', [StudentRegistrationController::class, 'verifyCode'])
+        ->middleware('throttle:otp-verify')->name('register.verify-code');
+    Route::get('register', [StudentRegistrationController::class, 'showForm'])->name('register');
+    Route::post('register', [StudentRegistrationController::class, 'register'])
+        ->middleware('throttle:uploads')->name('register.submit');
+    Route::post('register/cancel', [StudentRegistrationController::class, 'cancel'])->name('register.cancel');
     Route::post('logout', [StudentAuthController::class, 'logout'])->middleware('student.auth', 'no.history')->name('logout');
 
     Route::middleware(['student.auth', 'no.history'])->group(function () {
@@ -46,6 +58,10 @@ Route::prefix('student')->name('student.')->group(function () {
         Route::get('clearance-form', [ClearanceFormController::class, 'student'])->name('clearance.form');
         Route::get('clearance-form/download', [ClearanceFormController::class, 'studentDownload'])->name('clearance.form.download');
         Route::get('clearance-updates', [ClearanceUpdatesController::class, 'index'])->name('clearance-updates');
+        // Irregular students declare their own subjects and instructors.
+        Route::get('my-subjects', [SubjectEnrollmentController::class, 'index'])->name('subjects.index');
+        Route::post('my-subjects', [SubjectEnrollmentController::class, 'store'])->name('subjects.store');
+        Route::delete('my-subjects', [SubjectEnrollmentController::class, 'destroy'])->name('subjects.destroy');
         Route::post('clearance/submit-instructor', [ClearanceUpdatesController::class, 'submitInstructor'])->name('clearance.submit-instructor');
         Route::post('clearance/submit-office', [ClearanceUpdatesController::class, 'submitOffice'])->name('clearance.submit-office');
         Route::post('clearance/upload-office', [ClearanceUpdatesController::class, 'uploadOfficeSubmission'])->middleware('throttle:uploads')->name('clearance.upload-office');

@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Student;
 
+use App\Support\SectionKey;
+
 use App\Http\Controllers\Controller;
 use App\Models\ClearanceStatus;
 use App\Models\Notification;
 use App\Models\StudentAccount;
 use App\Support\ClearanceWorkflow;
 use App\Support\SecureUpload;
+use App\Support\StudentSubjects;
 use App\Support\SubmissionFileResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -223,7 +226,7 @@ class ClearanceUpdatesController extends Controller
             $recipientRole = 'treasurer';
             $recipientId = Schema::hasTable('treasurers') ? DB::table('treasurers')->where('treasurer_type', 'section')
                 ->where('program', $student->program)->where('year_level', $student->year_level)
-                ->whereRaw('LOWER(TRIM(section)) = LOWER(TRIM(?))', [$student->section])
+                ->whereRaw(SectionKey::sql('section').' = '.SectionKey::sql('?'), [$student->section])
                 ->orderBy('id')->value('treasurer_id') : null;
             $link = route('treasurer.dashboard');
         } elseif ($officeRole === 'department treasurer') {
@@ -270,7 +273,7 @@ class ClearanceUpdatesController extends Controller
                 $account = $query->where('treasurer_type', 'section')
                     ->where('program', $student->program)
                     ->where('year_level', $student->year_level)
-                    ->whereRaw('LOWER(TRIM(section)) = LOWER(TRIM(?))', [$student->section])
+                    ->whereRaw(SectionKey::sql('section').' = '.SectionKey::sql('?'), [$student->section])
                     ->orderBy('id')
                     ->first();
             } elseif (! $account) {
@@ -330,22 +333,33 @@ class ClearanceUpdatesController extends Controller
             ->orderBy('subject_codes.subject_code')
             ->get();
 
-        $instructorAssignments = DB::table('instructor_assignment')
-            ->leftJoin('subject_codes', 'instructor_assignment.subject_id', '=', 'subject_codes.subject_id')
-            ->leftJoin('instructor_account', 'instructor_assignment.instructor_id', '=', 'instructor_account.instructor_id')
-            ->where('instructor_assignment.program', $student->program)
-            ->where('instructor_assignment.year_level', $student->year_level)
-            ->whereRaw('LOWER(TRIM(instructor_assignment.section)) = LOWER(TRIM(?))', [$student->section])
-            ->select(
-                'instructor_assignment.subject_id',
-                'instructor_assignment.instructor_id',
-                'subject_codes.subject_code',
-                'subject_codes.subject_description',
-                'instructor_account.firstname as instructor_firstname',
-                'instructor_account.lastname as instructor_lastname'
-            )
-            ->orderBy('subject_codes.subject_code')
-            ->get();
+        // An irregular student's list is the subjects they enrolled in, not their
+        // section's block; StudentSubjects decides which of the two applies. The
+        // pairs come back as ids, so the display columns are looked up either
+        // side of them rather than joined onto two different source tables.
+        $enrolled = StudentSubjects::forStudent($student);
+
+        $subjectLookup = DB::table('subject_codes')
+            ->whereIn('subject_id', $enrolled->pluck('subject_id')->unique()->all())
+            ->get(['subject_id', 'subject_code', 'subject_description'])
+            ->keyBy('subject_id');
+
+        $instructorLookup = DB::table('instructor_account')
+            ->whereIn('instructor_id', $enrolled->pluck('instructor_id')->unique()->all())
+            ->get(['instructor_id', 'firstname', 'lastname'])
+            ->keyBy('instructor_id');
+
+        $instructorAssignments = $enrolled
+            ->map(fn ($pair) => (object) [
+                'subject_id' => $pair->subject_id,
+                'instructor_id' => $pair->instructor_id,
+                'subject_code' => $subjectLookup->get($pair->subject_id)->subject_code ?? null,
+                'subject_description' => $subjectLookup->get($pair->subject_id)->subject_description ?? null,
+                'instructor_firstname' => $instructorLookup->get($pair->instructor_id)->firstname ?? null,
+                'instructor_lastname' => $instructorLookup->get($pair->instructor_id)->lastname ?? null,
+            ])
+            ->sortBy('subject_code')
+            ->values();
 
         $officeClearances = DB::table('office_clearance_status')
             ->where('student_id', $student->student_id)

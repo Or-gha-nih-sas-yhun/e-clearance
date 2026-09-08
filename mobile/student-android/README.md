@@ -7,7 +7,12 @@ The app uses the existing responsive Laravel student portal inside a restricted 
 ## Included Android features
 
 - Student routes only (`/student/...`)
-- Persistent Laravel login session through first-party cookies
+- Account self-registration, including the emailed six-digit registration code
+- New-device sign-in verification (emailed six-digit code)
+- Cross-role chat support with instructors, offices, treasurers, and the registrar
+- Persistent Laravel login session through first-party cookies, flushed to disk
+  whenever the app is backgrounded so leaving for the mail app cannot lose a
+  half-finished registration
 - File selection for subject and office uploads
 - Authenticated document downloads to the Android Downloads folder
 - Android back-button navigation
@@ -17,6 +22,29 @@ The app uses the existing responsive Laravel student portal inside a restricted 
 - Invalid TLS certificates are rejected
 - Release builds require HTTPS
 
+## How website features reach the app
+
+The app is a restricted WebView over the live student portal, so a new student
+feature on the website is normally available in the app with **no Android change
+at all** — it is the same Laravel routes, session, and CSRF protection.
+
+The one thing that can block a new feature is the URL allow-list in
+`MainActivity.isAllowedStudentUrl()`. It permits only the portal's own origin
+*and* a path of `/student` or `/student/...`; any other first-party page is
+bounced back to the student login, and anything off-origin opens in the browser.
+
+So when adding a student feature to the website:
+
+- Put its routes under the `student.` prefix (`/student/...`) and it just works.
+  Account registration (`/student/register...`) and chat support
+  (`/student/chat-support`) both qualify.
+- Subresources are unaffected — the allow-list only sees navigations. The login
+  captcha `<img>` and the notification-bell `fetch()` calls live outside
+  `/student/` and still work.
+- A first-party **link or form post** outside `/student/` will be hijacked to the
+  login page. The landing-page link is the only one, and the student login
+  template already hides it when the user agent contains `MCCStudentAndroid/`.
+
 ## Online server
 
 Debug and release builds connect only to the live student portal:
@@ -25,8 +53,8 @@ Debug and release builds connect only to the live student portal:
 https://mcceclearance.com/student/login
 ```
 
-Version 1.2 ignores server addresses saved by older installations so launching
-the app cannot redirect from a local address into the external browser.
+Version 1.2 and newer ignore server addresses saved by older installations so
+launching the app cannot redirect from a local address into the external browser.
 
 ## Open in Android Studio
 
@@ -78,6 +106,6 @@ Before publishing:
 2. Confirm `https://mcceclearance.com` remains configured in `app/src/main/res/values/strings.xml`.
 3. Create a private Android signing key and configure release signing in `app/build.gradle.kts` without committing passwords or the keystore.
 4. Build an Android App Bundle with `gradlew.bat bundleRelease`.
-5. Test login, uploads, downloads, chat, password recovery, and logout against production.
+5. Test registration, login, new-device codes, uploads, downloads, chat, password recovery, and logout against production.
 
 Do not enable cleartext HTTP or bypass certificate validation in a production build.

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SecurityAuditLog;
 use App\Support\DeviceFingerprint;
+use App\Support\ListPageSize;
 use App\Support\PortalAccounts;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -25,8 +26,6 @@ use Illuminate\Support\Facades\Schema;
  */
 class ActivityLogController extends Controller
 {
-    private const PER_PAGE = 25;
-
     /** Readable labels for the events AuditLogger actually records. */
     private const EVENT_LABELS = [
         'authentication.login' => 'Signed in',
@@ -91,7 +90,7 @@ class ActivityLogController extends Controller
 
         $activities = $this->scoped($filters)
             ->orderByDesc('created_at')->orderByDesc('id')
-            ->paginate(self::PER_PAGE)
+            ->paginate(ListPageSize::from($request->limit))
             ->withQueryString();
 
         $activities->setCollection($this->decorate($activities->getCollection(), $filters['device']));

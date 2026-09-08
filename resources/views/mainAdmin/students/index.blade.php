@@ -109,7 +109,7 @@
         </table>
     </div>
     <div style="padding:16px 20px;">
-        {{ $students->links() }}  {{-- Laravel pagination --}}
+        <x-main-admin.table-pagination :paginator="$students" label="students" />
     </div>
 </div>
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SubjectCode;
+use App\Support\ListPageSize;
 use App\Support\RecordPurge;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -34,7 +35,7 @@ class SubjectCodeController extends Controller
         }
 
         $order = in_array($request->order, ['ASC', 'DESC']) ? $request->order : 'DESC';
-        $limit = in_array($request->limit, [10, 25, 50, 100]) ? (int) $request->limit : 25;
+        $limit = ListPageSize::from($request->limit);
         $subjects = $query->orderBy('subject_id', $order)->paginate($limit)->withQueryString();
         $programs = $this->programs;
         $semesters = $this->semesters;

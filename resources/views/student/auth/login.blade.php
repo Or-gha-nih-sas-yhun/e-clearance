@@ -185,6 +185,9 @@
         .text-action { padding:5px; color:var(--blue); border:0; outline:0; background:transparent; font-size:.86rem; font-weight:700; cursor:pointer; }
         .text-action:hover { text-decoration:underline; }
         .text-action.muted { color:#60748e; }
+        .register-prompt { margin:14px 0 0; color:var(--muted); text-align:center; font-size:.86rem; }
+        .register-prompt .text-action { padding:0 0 0 3px; }
+        .text-action.muted { color:#60748e; }
         .back-button { display:flex; width:100%; min-height:48px; margin-top:11px; align-items:center; justify-content:center; gap:8px; color:#34506f; border:0; border-radius:14px; background:rgba(230,240,249,.76); font-weight:700; cursor:pointer; }
         .back-button:hover { color:var(--blue); background:#e6f3ff; }
         .help { margin: 20px 0 0; color: var(--muted); text-align: center; font-size: .96rem; }
@@ -376,6 +379,13 @@
             <div class="login-card">
                 @php
                     $activePanel = in_array($recoveryStep ?? 'login', ['email', 'code', 'reset'], true) ? $recoveryStep : 'login';
+                    // Self-registration: 'code' means a registration code is awaiting entry.
+                    $registrationState = session('student_registration');
+                    if (is_array($registrationState) && ($registrationState['stage'] ?? null) === 'code') {
+                        $activePanel = 'register-code';
+                    } elseif (old('registration_action') === 'account') {
+                        $activePanel = 'register-account';
+                    }
                     // Set once the password is accepted from a browser this student has not verified before.
                     $loginChallenge = session('login_challenge_student');
                     if (is_array($loginChallenge)) $activePanel = 'device-otp';
@@ -390,6 +400,8 @@
                         'code' => ['icon' => 'bi-shield-check', 'title' => 'Check Your Email', 'subtitle' => 'Enter the six-digit verification code we sent.'],
                         'reset' => ['icon' => 'bi-key', 'title' => 'Create New Password', 'subtitle' => 'Choose a strong new password for your account.'],
                         'device-otp' => ['icon' => 'bi-envelope-shield', 'title' => 'Verify This Device', 'subtitle' => 'Enter the one-time code sent to your registered email.'],
+                        'register-account' => ['icon' => 'bi-person-plus', 'title' => 'Register Account', 'subtitle' => 'Confirm the Microsoft account issued to you by the college.'],
+                        'register-code' => ['icon' => 'bi-shield-check', 'title' => 'Check Your Email', 'subtitle' => 'Enter the six-digit registration code we sent.'],
                     ];
                     $activeHeading = $panelHeadings[$activePanel];
                 @endphp
@@ -406,6 +418,10 @@
 
                 @if (session('recovery_status'))
                     <div class="alert info" role="status"><i class="bi bi-info-circle"></i><span>{{ session('recovery_status') }}</span></div>
+                @endif
+
+                @if (session('registration_status'))
+                    <div class="alert info" role="status"><i class="bi bi-info-circle"></i><span>{{ session('registration_status') }}</span></div>
                 @endif
 
                 @if ($errors->any())
@@ -442,10 +458,53 @@
                         </div>
                         <button type="submit" class="login-button"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i><span>Log In</span></button>
                     </form>
+                    <p class="register-prompt">No account yet? <button type="button" class="text-action" data-show-auth-panel="register-account">Register your account</button></p>
                     @unless(str_contains((string) request()->userAgent(), 'MCCStudentAndroid/'))
                         <a href="{{ route('landing') }}" class="landing-button"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Back to Landing Page</span></a>
                     @endunless
                 </div>
+
+                {{-- Registration step 1: prove you own a listed Microsoft account. --}}
+                <div class="auth-panel" id="register-account-panel" data-panel="register-account" @if($activePanel !== 'register-account') hidden @endif>
+                    <p class="recovery-note">Enter the Microsoft account the college issued you. We will email a six-digit code to confirm it is yours.</p>
+                    <form method="POST" action="{{ route('student.register.send-code') }}">
+                        @csrf
+                        <div class="field">
+                            <i class="bi bi-microsoft" aria-hidden="true"></i>
+                            <label for="ms_account" hidden>Microsoft account</label>
+                            <input type="email" name="ms_account" id="ms_account" value="{{ old('ms_account') }}" placeholder="Microsoft account (e.g. name@mcc.edu.ph)" autocomplete="email" maxlength="150" data-validation-label="Microsoft account" required>
+                        </div>
+                        <button type="submit" class="login-button"><i class="bi bi-send" aria-hidden="true"></i><span>Send Registration Code</span></button>
+                    </form>
+                    <button type="button" class="back-button" data-show-auth-panel="login"><i class="bi bi-arrow-left"></i> Back to Login</button>
+                </div>
+
+                {{-- Registration step 2: enter the emailed code. --}}
+                @if (is_array($registrationState) && ($registrationState['stage'] ?? null) === 'code')
+                    @php
+                        $regEmail = (string) ($registrationState['ms_account'] ?? '');
+                        $regParts = str_contains($regEmail, '@') ? explode('@', $regEmail, 2) : [];
+                        $regMasked = count($regParts) === 2
+                            ? substr($regParts[0], 0, min(2, strlen($regParts[0]))) . str_repeat('•', max(3, strlen($regParts[0]) - 2)) . '@' . $regParts[1]
+                            : $regEmail;
+                    @endphp
+                    <div class="auth-panel" id="register-code-panel" data-panel="register-code" @if($activePanel !== 'register-code') hidden @endif>
+                        <p class="recovery-note">Code sent to <strong>{{ $regMasked }}</strong>. It expires after 10 minutes.</p>
+                        <form method="POST" action="{{ route('student.register.verify-code') }}">
+                            @csrf
+                            <div class="field code-field">
+                                <i class="bi bi-shield-lock" aria-hidden="true"></i>
+                                <label for="registration_code" hidden>Six-digit registration code</label>
+                                <input type="text" inputmode="numeric" name="verification_code" id="registration_code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" autocomplete="one-time-code" data-validation-label="Registration code" data-validation-rule="verification-code" required autofocus>
+                            </div>
+                            <button type="submit" class="login-button"><i class="bi bi-check2-circle" aria-hidden="true"></i><span>Verify &amp; Continue</span></button>
+                        </form>
+                        <div class="recovery-footer">
+                            <form method="POST" action="{{ route('student.register.send-code') }}">@csrf<input type="hidden" name="ms_account" value="{{ $regEmail }}"><button type="submit" class="text-action">Resend code</button></form>
+                            <form method="POST" action="{{ route('student.register.cancel') }}">@csrf<button type="submit" class="text-action muted">Cancel registration</button></form>
+                        </div>
+                    </div>
+                @endif
 
                 <div class="auth-panel" id="email-panel" data-panel="email" @if($activePanel !== 'email') hidden @endif>
                     <div class="recovery-steps" aria-label="Password recovery step 1 of 3"><span class="recovery-step active"></span><span class="recovery-step"></span><span class="recovery-step"></span></div>

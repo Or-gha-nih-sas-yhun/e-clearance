@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+
 use App\Models\StudentAccount;
 use Illuminate\Support\Facades\DB;
 
@@ -39,18 +40,16 @@ final class ClearanceWorkflow
         return in_array($role, self::OFFICE_ROLES, true) ? $role : null;
     }
 
+    /**
+     * An irregular student's subjects are the ones they enrolled in themselves,
+     * not their section's block — {@see StudentSubjects} owns that distinction.
+     */
     public static function instructorIsAssigned(
         StudentAccount $student,
         int $subjectId,
         string $instructorId,
     ): bool {
-        return DB::table('instructor_assignment')
-            ->where('subject_id', $subjectId)
-            ->where('instructor_id', $instructorId)
-            ->where('program', $student->program)
-            ->where('year_level', $student->year_level)
-            ->whereRaw('LOWER(TRIM(section)) = LOWER(TRIM(?))', [$student->section])
-            ->exists();
+        return StudentSubjects::covers($student, $subjectId, $instructorId);
     }
 
     public static function prerequisitesMet(StudentAccount $student, string $officeRole): bool
@@ -105,12 +104,11 @@ final class ClearanceWorkflow
 
     public static function allInstructorClearancesApproved(StudentAccount $student): bool
     {
-        $assignments = DB::table('instructor_assignment')
-            ->where('program', $student->program)
-            ->where('year_level', $student->year_level)
-            ->whereRaw('LOWER(TRIM(section)) = LOWER(TRIM(?))', [$student->section])
-            ->get(['subject_id', 'instructor_id']);
+        $assignments = StudentSubjects::forStudent($student);
 
+        // An irregular student who has not declared a single subject yet has
+        // nothing to be cleared of, so the dean and registrar stay closed until
+        // they do — the same as a section with no assignments at all.
         if ($assignments->isEmpty()) {
             return false;
         }

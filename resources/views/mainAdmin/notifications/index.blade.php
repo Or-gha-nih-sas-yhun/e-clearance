@@ -15,7 +15,7 @@
             <p>System alerts, reminders, and recent clearance updates.</p>
         </div>
         <span class="admin-result-count">
-            {{ number_format($notifications->count()) }} {{ \Illuminate\Support\Str::plural('notification', $notifications->count()) }}
+            {{ number_format($notifications->total()) }} {{ \Illuminate\Support\Str::plural('notification', $notifications->total()) }}
         </span>
     </header>
 
@@ -70,5 +70,7 @@
             </div>
         @endforelse
     </div>
+
+    <x-main-admin.table-pagination :paginator="$notifications" label="notifications" />
 </section>
 @endsection

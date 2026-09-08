@@ -20,6 +20,7 @@
                         <select id="csvImportTypeSelect" onchange="setCsvType(this.value)" required>
                             <option value="">-- Select type --</option>
                             <option value="students">Students</option>
+                            <option value="student_registry">Student Registration List</option>
                             <option value="instructors">Instructors</option>
                             <option value="admin_personnel">Admin Personnel</option>
                             <option value="registrar">Registrar</option>

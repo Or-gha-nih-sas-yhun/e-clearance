@@ -554,6 +554,108 @@ body.main-admin-portal .page-link {
     font-size: .7rem;
 }
 
+/* Footer under every Main Admin table: rows-per-page, the running count, and
+   labelled Previous / Next beside the numbered pages. */
+body.main-admin-portal .table-pager {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 19px;
+    border-top: 1px solid rgba(151, 192, 220, .38);
+    flex-wrap: wrap;
+}
+
+body.main-admin-portal .table-pager-size {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #547189;
+    font-size: .7rem;
+    font-weight: 700;
+}
+
+body.main-admin-portal .table-pager-size label,
+body.main-admin-portal .table-pager-size span {
+    margin: 0;
+    white-space: nowrap;
+}
+
+body.main-admin-portal .table-pager-size select {
+    width: auto;
+    min-width: 62px;
+    padding: 6px 26px 6px 10px;
+    font-size: .72rem;
+}
+
+body.main-admin-portal .table-pager-count {
+    margin: 0;
+    color: #6a8299;
+    font-size: .7rem;
+    font-weight: 600;
+}
+
+body.main-admin-portal .table-pager-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+body.main-admin-portal .table-pager-page {
+    color: #547189;
+    font-size: .68rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+body.main-admin-portal .table-pager-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 13px;
+    border: 1px solid rgba(151, 184, 208, .55);
+    border-radius: 9px;
+    color: #2c5f86;
+    background: rgba(255, 255, 255, .72);
+    font-size: .7rem;
+    font-weight: 800;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: border-color .18s ease, background .18s ease, color .18s ease;
+}
+
+body.main-admin-portal .table-pager-btn:hover {
+    border-color: rgba(22, 133, 207, .6);
+    color: #0d6ba8;
+    background: #fff;
+}
+
+body.main-admin-portal .table-pager-btn.disabled {
+    color: #9fb2c4;
+    background: rgba(240, 246, 251, .7);
+    cursor: default;
+}
+
+body.main-admin-portal .table-pager-links {
+    display: flex;
+    justify-content: center;
+    padding: 0 19px 16px;
+}
+
+/* The pager bar above already carries labelled Previous / Next, so the numbered
+   row keeps only the numbers: its own arrows are the first and last page-item,
+   and its mobile-only block is nothing but a second Previous / Next pair. */
+body.main-admin-portal .table-pager-links .d-sm-none,
+body.main-admin-portal .table-pager-links .pagination .page-item:first-child,
+body.main-admin-portal .table-pager-links .pagination .page-item:last-child {
+    display: none !important;
+}
+
+@media (max-width: 720px) {
+    body.main-admin-portal .table-pager { justify-content: center; }
+    body.main-admin-portal .table-pager-count { order: 3; width: 100%; text-align: center; }
+}
+
 /* Dialogs keep every existing CRUD workflow while matching the portal surface. */
 body.main-admin-portal .modal-overlay {
     background: rgba(19, 52, 79, .48);

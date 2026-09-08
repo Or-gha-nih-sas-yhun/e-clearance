@@ -115,7 +115,7 @@
     @stack('styles')
     <link href="{{ asset('css/portal_page_indicator.css') }}" rel="stylesheet">
 </head>
-<body class="student-portal-theme portal-chrome-theme instructor-portal-theme dept-{{ strtolower(auth('instructor')->user()->department ?? 'bsit') }}">
+<body class="student-portal-theme portal-chrome-theme instructor-portal-theme dept-{{ \App\Support\InstructorDepartment::slug(auth('instructor')->user()->department ?? '') }}">
 @php
     $accountUpdateRoute = route('instructor.account.update');
 @endphp
@@ -139,7 +139,7 @@
             <div class="user-avatar">{{ strtoupper(substr(auth('instructor')->user()->firstname ?? 'I',0,1)) }}</div>
             <div>
                 <div class="user-name">{{ auth('instructor')->user()->full_name ?? 'Instructor' }}</div>
-                <div class="user-role">{{ auth('instructor')->user()->department ?? 'Instructor' }}</div>
+                <div class="user-role">{{ auth('instructor')->user()->department_label ?? 'Instructor' }}</div>
             </div>
             <i class="bi bi-chevron-down student-account-chevron"></i>
         </div>
@@ -159,7 +159,7 @@
             <span class="sidebar-portal-icon"><i class="bi bi-person-video3"></i></span>
             <div class="sidebar-portal-copy">
                 <div class="fs-5 fw-semibold">Instructor Portal</div>
-                <div class="small text-secondary">{{ auth('instructor')->user()->department ?? 'Faculty account' }}</div>
+                <div class="small text-secondary">{{ auth('instructor')->user()->department_label ?? 'Faculty account' }}</div>
             </div>
             <button class="sidebar-close-button" type="button" onclick="closeOverlay()" aria-label="Close navigation"><i class="bi bi-x-lg"></i></button>
         </div>
@@ -192,7 +192,7 @@
                 request()->routeIs('instructor.chat') => ['title' => 'Messages', 'eyebrow' => 'Student Support', 'icon' => 'bi bi-chat-square-text-fill', 'description' => 'Communicate with students assigned to your classes and address their concerns.'],
                 default => ['title' => trim($__env->yieldContent('title')) ?: 'Instructor Portal', 'eyebrow' => 'Instructor Portal', 'icon' => 'bi bi-person-video3', 'description' => 'Manage your teaching and clearance responsibilities.'],
             };
-            $instructorDepartment = auth('instructor')->user()->department ?? 'Instructor';
+            $instructorDepartment = auth('instructor')->user()->department_label ?? 'Instructor';
         @endphp
         <x-portal.page-indicator
             :title="$instructorPageMeta['title']"
@@ -273,11 +273,22 @@
                 <input type="email" name="email" class="form-control" value="{{ old('email', auth('instructor')->user()->email ?? '') }}" required>
             </div>
 
-            <div class="form-row single">
+            <div class="form-row{{ \App\Models\Instructor::tracksEmploymentStatus() ? '' : ' single' }}">
                 <div>
                     <label class="form-label">Department</label>
-                    <input type="text" name="department" class="form-control" value="{{ old('department', auth('instructor')->user()->department ?? '') }}" required>
+                    <select name="department" class="form-control" required>
+                        @foreach(\App\Support\InstructorDepartment::OPTIONS as $departmentOption)
+                        <option value="{{ $departmentOption }}" {{ old('department', \App\Support\InstructorDepartment::canonical(auth('instructor')->user()->department ?? '')) === $departmentOption ? 'selected' : '' }}>{{ $departmentOption }}</option>
+                        @endforeach
+                    </select>
                 </div>
+                @if(\App\Models\Instructor::tracksEmploymentStatus())
+                <div>
+                    {{-- Read-only: Main Admin owns an instructor's employment status. --}}
+                    <label class="form-label">Position</label>
+                    <input type="text" class="form-control" value="{{ auth('instructor')->user()->employment_status ?: \App\Models\Instructor::EMPLOYMENT_REGULAR }}" disabled>
+                </div>
+                @endif
             </div>
 
             <div class="form-row">

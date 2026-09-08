@@ -19,7 +19,9 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RegistrarController;
 use App\Http\Controllers\SectionController;
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\StudentRegistryController;
 use App\Http\Controllers\SubjectCodeController;
+use App\Http\Controllers\SystemSettingsController;
 use App\Http\Controllers\TreasurerController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -140,6 +142,18 @@ Route::middleware(['admin.auth', 'no.history'])
         Route::put('/students/{student_id}', [StudentController::class, 'update'])->name('students.update');
         Route::delete('/students/{student_id}', [StudentController::class, 'destroy'])->name('students.destroy');
         Route::patch('/students/{student_id}/reset', [StudentController::class, 'reset'])->name('students.reset');
+
+        // Roster of Microsoft accounts allowed to self-register a student account.
+        Route::get('/student-registry', [StudentRegistryController::class, 'index'])->name('student-registry.index');
+        Route::post('/student-registry', [StudentRegistryController::class, 'store'])->name('student-registry.store');
+        Route::put('/student-registry/{id}', [StudentRegistryController::class, 'update'])->whereNumber('id')->name('student-registry.update');
+        Route::delete('/student-registry/{id}', [StudentRegistryController::class, 'destroy'])->whereNumber('id')->name('student-registry.destroy');
+
+        // End-of-term maintenance. Destructive; each action needs a typed phrase.
+        Route::get('/settings', [SystemSettingsController::class, 'index'])->name('settings.index');
+        Route::get('/settings/clearance-archive', [SystemSettingsController::class, 'archive'])->name('settings.clearance-archive');
+        Route::post('/settings/promote-students', [SystemSettingsController::class, 'promote'])->name('settings.promote');
+        Route::post('/settings/reset-clearance', [SystemSettingsController::class, 'reset'])->name('settings.reset');
 
         // Instructors
         Route::get('/instructors', [InstructorController::class, 'index'])->name('instructors.index');

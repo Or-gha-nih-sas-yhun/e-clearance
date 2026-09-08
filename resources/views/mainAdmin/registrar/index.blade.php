@@ -54,7 +54,7 @@
             </tbody>
         </table>
     </div>
-    <div style="padding:16px 20px;">{{ $registrars->links() }}</div>
+    <x-main-admin.table-pagination :paginator="$registrars" label="registrars" />
 </div>
 
 <div class="modal-overlay" id="addModal">

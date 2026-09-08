@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Instructor;
+use App\Support\InstructorDepartment;
+use App\Support\ListPageSize;
 use App\Support\PersonName;
 use App\Support\RecordPurge;
 use App\Support\StrongPassword;
@@ -14,8 +16,6 @@ use Illuminate\Validation\Rules\Password;
 
 class InstructorController extends Controller
 {
-    private array $departments = ['BSIT', 'BSED', 'BEED', 'BSBA', 'BSHM'];
-
     public function index(Request $request)
     {
         $query = Instructor::query();
@@ -30,16 +30,35 @@ class InstructorController extends Controller
             });
         }
         if ($request->department) {
-            $query->where('department', $request->department);
+            // A filter on College of Education still has to find the BSED and
+            // BEED rows written before the two were merged into one faculty.
+            $query->whereIn('department', InstructorDepartment::storedValues($request->department));
+        }
+
+        $employmentAvailable = Instructor::tracksEmploymentStatus();
+        if ($employmentAvailable && in_array($request->employment, Instructor::EMPLOYMENT_STATUSES, true)) {
+            $query->where('employment_status', $request->employment);
         }
 
         $order = in_array($request->order, ['ASC', 'DESC']) ? $request->order : 'DESC';
-        $limit = in_array($request->limit, [10, 25, 50, 100]) ? (int) $request->limit : 25;
+        $limit = ListPageSize::from($request->limit);
 
         $instructors = $query->orderBy('id', $order)->paginate($limit)->withQueryString();
-        $departments = $this->departments;
 
-        return view('mainAdmin.instructors.index', compact('instructors', 'departments'));
+        // Display only: a legacy 'BSED'/'BEED' row reads as its college, and
+        // saving the edit form is what actually rewrites it.
+        $instructors->getCollection()->transform(function (Instructor $instructor): Instructor {
+            $instructor->department = $instructor->department_label;
+
+            return $instructor;
+        });
+
+        return view('mainAdmin.instructors.index', [
+            'instructors' => $instructors,
+            'departments' => InstructorDepartment::OPTIONS,
+            'employmentStatuses' => Instructor::EMPLOYMENT_STATUSES,
+            'employmentAvailable' => $employmentAvailable,
+        ]);
     }
 
     public function store(Request $request)
@@ -52,14 +71,17 @@ class InstructorController extends Controller
             'suffix' => ['nullable', 'string', 'max:10', 'regex:/^[\pL\pN.\s\'\-]+$/u'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:100', 'unique:instructor_account,email'],
             'password' => ['nullable', 'string', 'max:128', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
-            'department' => 'required|in:BSIT,BSED,BEED,BSBA,BSHM',
+            'department' => ['required', Rule::in(InstructorDepartment::accepted())],
+            'employment_status' => $this->employmentStatusRules(),
         ], [
             'instructor_id.unique' => 'This employee ID is already in use.',
             'email.unique' => 'This email address is already in use.',
+            'employment_status.required' => 'Choose whether this instructor is regular or part timer.',
             ...PersonName::messages('firstname', 'middlename', 'lastname'),
         ]);
         $plainPassword = ! empty($data['password']) ? $data['password'] : StrongPassword::generate();
         $data['password'] = Hash::make($plainPassword);
+        $this->normalizeFaculty($data);
         Instructor::create($data);
 
         return redirect()->route('instructors.index')->with('flash', ['type' => 'success', 'message' => "New instructor added. Initial password: {$plainPassword}"]);
@@ -75,9 +97,11 @@ class InstructorController extends Controller
             'suffix' => ['nullable', 'string', 'max:10', 'regex:/^[\pL\pN.\s\'\-]+$/u'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:100', Rule::unique('instructor_account', 'email')->ignore($inst->id)],
             'password' => ['nullable', 'string', 'max:128', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
-            'department' => 'required|in:BSIT,BSED,BEED,BSBA,BSHM',
+            'department' => ['required', Rule::in(InstructorDepartment::accepted())],
+            'employment_status' => $this->employmentStatusRules(),
         ], [
             'email.unique' => 'This email address is already in use.',
+            'employment_status.required' => 'Choose whether this instructor is regular or part timer.',
             ...PersonName::messages('firstname', 'middlename', 'lastname'),
         ]);
         if (! empty($data['password'])) {
@@ -85,6 +109,7 @@ class InstructorController extends Controller
         } else {
             unset($data['password']);
         }
+        $this->normalizeFaculty($data);
         $inst->update($data);
 
         return redirect()->route('instructors.index')->with('flash', ['type' => 'success', 'message' => 'Instructor updated.']);
@@ -117,5 +142,30 @@ class InstructorController extends Controller
             'type' => 'success',
             'message' => "Password reset. One-time temporary password: {$temporaryPassword}",
         ]);
+    }
+
+    /** Position is required only once there is a column to hold it. */
+    private function employmentStatusRules(): array
+    {
+        return Instructor::tracksEmploymentStatus()
+            ? ['required', Rule::in(Instructor::EMPLOYMENT_STATUSES)]
+            : ['nullable'];
+    }
+
+    /**
+     * Store the canonical department, and drop the position on a database that
+     * has no column for it rather than failing the whole save.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function normalizeFaculty(array &$data): void
+    {
+        $data['department'] = InstructorDepartment::canonical($data['department']);
+
+        if (Instructor::tracksEmploymentStatus()) {
+            $data['employment_status'] = ($data['employment_status'] ?? null) ?: Instructor::EMPLOYMENT_REGULAR;
+        } else {
+            unset($data['employment_status']);
+        }
     }
 }

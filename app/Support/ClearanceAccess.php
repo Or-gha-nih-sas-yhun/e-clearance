@@ -20,7 +20,7 @@ final class ClearanceAccess
             ->join('student_account as sa', function ($join) {
                 $join->on('sa.program', '=', 'ia.program')
                     ->on('sa.year_level', '=', 'ia.year_level')
-                    ->whereRaw('LOWER(TRIM(sa.section)) = LOWER(TRIM(ia.section))');
+                    ->whereRaw(SectionKey::sql('sa.section').' = '.SectionKey::sql('ia.section'));
             })
             ->where('ia.instructor_id', $instructorId)
             ->where('ia.subject_id', $subjectId)
@@ -67,7 +67,7 @@ final class ClearanceAccess
         if ($type === 'section') {
             $withinAssignment = $this->sameValue($student->program, $treasurer->program ?? null)
                 && $this->sameValue($student->year_level, $treasurer->year_level ?? null)
-                && $this->sameValue($student->section, $treasurer->section ?? null);
+                && SectionKey::matches($student->section, $treasurer->section ?? null);
         }
 
         if ($type === 'department') {
@@ -159,7 +159,10 @@ final class ClearanceAccess
             return $query
                 ->whereRaw("LOWER(TRIM({$studentTable}.program)) = LOWER(TRIM(?))", [$treasurer->program])
                 ->whereRaw("LOWER(TRIM({$studentTable}.year_level)) = LOWER(TRIM(?))", [$treasurer->year_level])
-                ->whereRaw("LOWER(TRIM({$studentTable}.section)) = LOWER(TRIM(?))", [$treasurer->section]);
+                ->whereRaw(
+                    SectionKey::sql("{$studentTable}.section").' = '.SectionKey::sql('?'),
+                    [$treasurer->section]
+                );
         }
 
         if ($type === 'department') {

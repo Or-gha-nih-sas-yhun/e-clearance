@@ -223,7 +223,7 @@ final class ChatDirectory
             ->where('instructor_id', $instructorId)
             ->where('program', $student->program)
             ->where('year_level', $student->year_level)
-            ->whereRaw('LOWER(TRIM(section)) = LOWER(TRIM(?))', [$student->section])
+            ->whereRaw(SectionKey::sql('section').' = '.SectionKey::sql('?'), [$student->section])
             ->exists();
 
         if ($assigned) {
@@ -260,7 +260,7 @@ final class ChatDirectory
         return match (strtolower(trim((string) ($treasurer->treasurer_type ?? '')))) {
             'section' => $this->sameValue($student->program, $treasurer->program ?? null)
                 && $this->sameValue($student->year_level, $treasurer->year_level ?? null)
-                && $this->sameValue($student->section, $treasurer->section ?? null),
+                && SectionKey::matches($student->section, $treasurer->section ?? null),
             'department' => $this->sameValue($student->program, $treasurer->department ?? null),
             default => false,
         };
@@ -280,7 +280,7 @@ final class ChatDirectory
                 ->whereColumn('ia.instructor_id', 'instructor_account.instructor_id')
                 ->where('ia.program', $student->program)
                 ->where('ia.year_level', $student->year_level)
-                ->whereRaw('LOWER(TRIM(ia.section)) = LOWER(TRIM(?))', [$student->section])
+                ->whereRaw(SectionKey::sql('ia.section').' = '.SectionKey::sql('?'), [$student->section])
                 ->selectRaw('1'));
 
             if (Schema::hasTable('irregular_enrollment')) {
@@ -300,7 +300,7 @@ final class ChatDirectory
                 ->whereRaw('LOWER(TRIM(treasurer_type)) = ?', ['section'])
                 ->whereRaw('LOWER(TRIM(program)) = LOWER(TRIM(?))', [$student->program])
                 ->whereRaw('LOWER(TRIM(year_level)) = LOWER(TRIM(?))', [$student->year_level])
-                ->whereRaw('LOWER(TRIM(section)) = LOWER(TRIM(?))', [$student->section]))
+                ->whereRaw(SectionKey::sql('section').' = '.SectionKey::sql('?'), [$student->section]))
                 ->orWhere(fn ($department) => $department
                     ->whereRaw('LOWER(TRIM(treasurer_type)) = ?', ['department'])
                     ->whereRaw('LOWER(TRIM(department)) = LOWER(TRIM(?))', [$student->program]));
@@ -319,7 +319,7 @@ final class ChatDirectory
             $scope->whereExists(fn ($assignment) => $assignment->from('instructor_assignment as ia')
                 ->whereColumn('ia.program', 'student_account.program')
                 ->whereColumn('ia.year_level', 'student_account.year_level')
-                ->whereRaw('LOWER(TRIM(ia.section)) = LOWER(TRIM(student_account.section))')
+                ->whereRaw(SectionKey::sql('ia.section').' = '.SectionKey::sql('student_account.section'))
                 ->where('ia.instructor_id', $instructorId)
                 ->selectRaw('1'));
 

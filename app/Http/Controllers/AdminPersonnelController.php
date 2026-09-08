@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AdminPersonnel;
+use App\Support\ListPageSize;
 use App\Support\PersonName;
 use App\Support\RecordPurge;
 use App\Support\StrongPassword;
@@ -31,7 +32,7 @@ class AdminPersonnelController extends Controller
         }
 
         $order = in_array($request->order, ['ASC', 'DESC']) ? $request->order : 'DESC';
-        $personnel = $query->orderBy('id', $order)->paginate(25)->withQueryString();
+        $personnel = $query->orderBy('id', $order)->paginate(ListPageSize::from($request->limit))->withQueryString();
         $validRoles = AdminPersonnel::$validRoles;
 
         return view('mainAdmin.personnel.index', compact('personnel', 'validRoles'));
@@ -44,7 +45,6 @@ class AdminPersonnelController extends Controller
             'lastname' => PersonName::requiredRules(),
             'email' => ['required', 'string', 'lowercase', 'email', 'max:100', 'unique:admin_personnel,email'],
             'password' => ['nullable', 'string', 'max:128', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
-            'office' => ['nullable', 'string', 'max:100'],
             'role' => ['required', Rule::in(array_keys(AdminPersonnel::$validRoles))],
         ], [
             'email.unique' => 'This email address is already in use.',
@@ -68,7 +68,6 @@ class AdminPersonnelController extends Controller
             'lastname' => PersonName::requiredRules(),
             'email' => ['required', 'string', 'lowercase', 'email', 'max:100', Rule::unique('admin_personnel', 'email')->ignore($id)],
             'password' => ['nullable', 'string', 'max:128', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
-            'office' => ['nullable', 'string', 'max:100'],
             'role' => ['required', Rule::in(array_keys(AdminPersonnel::$validRoles))],
         ], [
             'email.unique' => 'This email address is already in use.',

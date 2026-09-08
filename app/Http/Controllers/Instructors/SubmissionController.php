@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Instructors;
 
+use App\Support\SectionKey;
+use App\Support\StudentSubjects;
+
 use App\Http\Controllers\Controller;
 use App\Models\ClearanceStatus;
 use App\Models\InstructorRemark;
@@ -29,12 +32,11 @@ class SubmissionController extends Controller
         $fStatus = in_array($request->query('status'), ['Pending', 'Approved'], true)
             ? $request->query('status') : '';
 
-        $students = DB::table('instructor_assignment as ia')
-            ->join('student_account as sa', function ($j) {
-                $j->on('sa.program', '=', 'ia.program')
-                    ->on('sa.year_level', '=', 'ia.year_level')
-                    ->whereRaw('LOWER(TRIM(sa.section)) = LOWER(TRIM(ia.section))');
-            })
+        // The pairs table already resolves regular-vs-irregular enrolment, so an
+        // irregular student who picked this instructor shows up here too.
+        $students = DB::query()
+            ->fromSub(StudentSubjects::pairs(), 'ia')
+            ->join('student_account as sa', 'sa.student_id', '=', 'ia.student_id')
             ->where('ia.instructor_id', $instructorId)
             ->distinct()
             ->select('sa.student_id', 'sa.firstname', 'sa.lastname', DB::raw("{$studentNameExpression} as full_name"),
@@ -48,12 +50,9 @@ class SubmissionController extends Controller
             ->select('ia.subject_id', 'sc.subject_code', 'sc.subject_description')
             ->orderBy('sc.subject_code')->get();
 
-        $submissions = DB::table('instructor_assignment as ia')
-            ->join('student_account as sa', function ($j) {
-                $j->on('sa.program', '=', 'ia.program')
-                    ->on('sa.year_level', '=', 'ia.year_level')
-                    ->whereRaw('LOWER(TRIM(sa.section)) = LOWER(TRIM(ia.section))');
-            })
+        $submissions = DB::query()
+            ->fromSub(StudentSubjects::pairs(), 'ia')
+            ->join('student_account as sa', 'sa.student_id', '=', 'ia.student_id')
             ->join('subject_codes as sc', 'sc.subject_id', '=', 'ia.subject_id')
             ->leftJoin('clearance_status as cs', function ($j) {
                 $j->on('cs.student_id', '=', 'sa.student_id')

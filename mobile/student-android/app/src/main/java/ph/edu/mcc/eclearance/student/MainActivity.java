@@ -316,6 +316,17 @@ public final class MainActivity extends Activity {
     }
 
     @Override
+    protected void onPause() {
+        // Account registration and new-device sign-in both send the student out
+        // to their mail app in the middle of a Laravel session, and Android may
+        // kill this process while it is in the background. Cookies are otherwise
+        // only flushed on page load, so persist them now: losing the session
+        // cookie here would drop a half-finished registration.
+        CookieManager.getInstance().flush();
+        super.onPause();
+    }
+
+    @Override
     @SuppressWarnings("deprecation")
     @SuppressLint("GestureBackNavigation")
     public void onBackPressed() {

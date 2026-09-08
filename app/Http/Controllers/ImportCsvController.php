@@ -8,14 +8,17 @@ use App\Models\InstructorAssignment;
 use App\Models\ProgramSection;
 use App\Models\Registrar;
 use App\Models\Student;
+use App\Models\StudentRegistry;
 use App\Models\SubjectCode;
 use App\Models\Treasurer;
+use App\Support\InstructorDepartment;
 use App\Support\PersonName;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -55,8 +58,12 @@ class ImportCsvController extends Controller
             'allowed' => ['student_id', 'firstname', 'middlename', 'lastname', 'suffix', 'email', 'password', 'program', 'year_level', 'section', 'student_type'],
             'required' => ['student_id', 'firstname', 'lastname', 'email', 'password', 'program', 'year_level', 'section'],
         ],
+        'student_registry' => [
+            'allowed' => ['student_id', 'ms_account', 'status'],
+            'required' => ['student_id', 'ms_account'],
+        ],
         'instructors' => [
-            'allowed' => ['instructor_id', 'firstname', 'middlename', 'lastname', 'suffix', 'email', 'password', 'department'],
+            'allowed' => ['instructor_id', 'firstname', 'middlename', 'lastname', 'suffix', 'email', 'password', 'department', 'employment_status'],
             'required' => ['instructor_id', 'firstname', 'lastname', 'email', 'password', 'department'],
         ],
         'admin_personnel' => [
@@ -107,6 +114,7 @@ class ImportCsvController extends Controller
 
                 match ($type) {
                     'students' => $this->importStudent($data, $rowNumber, $inserted, $skipped, $errors),
+                    'student_registry' => $this->importStudentRegistry($data, $rowNumber, $inserted, $skipped, $errors),
                     'instructors' => $this->importInstructor($data, $rowNumber, $inserted, $skipped, $errors),
                     'admin_personnel' => $this->importPersonnel($data, $rowNumber, $inserted, $skipped, $errors),
                     'registrar' => $this->importRegistrar($data, $rowNumber, $inserted, $skipped, $errors),
@@ -191,10 +199,58 @@ class ImportCsvController extends Controller
         $inserted++;
     }
 
+    private function importStudentRegistry(array $data, int $row, int &$inserted, int &$skipped, array &$errors): void
+    {
+        if (! Schema::hasTable('student_registry')) {
+            $this->skip($row, 'the student_registry table does not exist yet.', $skipped, $errors);
+
+            return;
+        }
+
+        $data['ms_account'] = $this->normalizeEmail($data['ms_account'] ?? '');
+        $data['status'] = strtolower(trim($data['status'] ?? '')) ?: StudentRegistry::STATUS_INACTIVE;
+
+        if ($message = $this->rowError($data, [
+            'student_id' => ['required', 'regex:/^\d{4}-\d{4}$/'],
+            'ms_account' => ['required', 'string', 'email', 'max:150'],
+            'status' => ['required', Rule::in([StudentRegistry::STATUS_ACTIVE, StudentRegistry::STATUS_INACTIVE])],
+        ])) {
+            $this->skip($row, $message, $skipped, $errors);
+
+            return;
+        }
+
+        $exists = StudentRegistry::where('student_id', $data['student_id'])
+            ->orWhereRaw('LOWER(ms_account) = ?', [$data['ms_account']])
+            ->exists();
+
+        if ($exists) {
+            $this->skip($row, 'student ID or Microsoft account is already on the registration list.', $skipped, $errors);
+
+            return;
+        }
+
+        StudentRegistry::create([
+            'student_id' => $data['student_id'],
+            'ms_account' => $data['ms_account'],
+            'status' => $data['status'],
+            'registered_at' => $data['status'] === StudentRegistry::STATUS_ACTIVE ? now() : null,
+        ]);
+        $inserted++;
+    }
+
     private function importInstructor(array $data, int $row, int &$inserted, int &$skipped, array &$errors): void
     {
         $data['email'] = $this->normalizeEmail($data['email'] ?? '');
-        $data['department'] = strtoupper($data['department'] ?? '');
+        // BSED and BEED instructors are one faculty; a file still naming either
+        // program is accepted and stored as the College of Education.
+        $data['department'] = InstructorDepartment::canonical($data['department'] ?? '');
+        $data['employment_status'] = $this->canonicalEmploymentStatus($data['employment_status'] ?? '')
+            ?? ($data['employment_status'] ?? '');
+
+        if (($data['employment_status'] ?? '') === '') {
+            $data['employment_status'] = Instructor::EMPLOYMENT_REGULAR;
+        }
 
         if ($message = $this->rowError($data, [
             'instructor_id' => ['required', 'regex:/^\d{4}$/'],
@@ -204,7 +260,8 @@ class ImportCsvController extends Controller
             'suffix' => $this->suffixRules(),
             'email' => $this->emailRules(),
             'password' => $this->passwordRules(),
-            'department' => ['required', Rule::in(self::PROGRAMS)],
+            'department' => ['required', Rule::in(InstructorDepartment::accepted())],
+            'employment_status' => ['required', Rule::in(Instructor::EMPLOYMENT_STATUSES)],
         ])) {
             $this->skip($row, $message, $skipped, $errors);
 
@@ -217,7 +274,7 @@ class ImportCsvController extends Controller
             return;
         }
 
-        Instructor::create([
+        $attributes = [
             'instructor_id' => $data['instructor_id'],
             'firstname' => $data['firstname'],
             'middlename' => $data['middlename'] ?? '',
@@ -226,7 +283,14 @@ class ImportCsvController extends Controller
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
             'department' => $data['department'],
-        ]);
+        ];
+
+        // Deploys never migrate, so the column may not exist here yet.
+        if (Instructor::tracksEmploymentStatus()) {
+            $attributes['employment_status'] = $data['employment_status'];
+        }
+
+        Instructor::create($attributes);
         $inserted++;
     }
 
@@ -758,6 +822,26 @@ class ImportCsvController extends Controller
         foreach (['Regular', 'Irregular'] as $allowedType) {
             if (strcasecmp(trim($studentType), $allowedType) === 0) {
                 return $allowedType;
+            }
+        }
+
+        return null;
+    }
+
+    /** Accepts the spellings a spreadsheet uses for a part-time hire. */
+    private function canonicalEmploymentStatus(string $status): ?string
+    {
+        $status = trim($status);
+
+        foreach (['part timer', 'part-timer', 'part time', 'part-time', 'parttime', 'parttimer'] as $partTime) {
+            if (strcasecmp($status, $partTime) === 0) {
+                return Instructor::EMPLOYMENT_PART_TIME;
+            }
+        }
+
+        foreach (Instructor::EMPLOYMENT_STATUSES as $allowedStatus) {
+            if (strcasecmp($status, $allowedStatus) === 0) {
+                return $allowedStatus;
             }
         }
 

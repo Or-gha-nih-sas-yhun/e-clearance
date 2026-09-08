@@ -157,9 +157,7 @@
             </tbody>
         </table>
     </div>
-    @if($activities->hasPages())
-        <div style="padding:16px 20px;" aria-label="Activity pagination">{{ $activities->onEachSide(1)->links() }}</div>
-    @endif
+    <x-main-admin.table-pagination :paginator="$activities" label="events" />
 </div>
 @endunless
 @endsection

@@ -96,7 +96,7 @@
             </tbody>
         </table>
     </div>
-    <div style="padding:16px 20px;">{{ $subjects->links() }}</div>
+    <x-main-admin.table-pagination :paginator="$subjects" label="subjects" />
 </div>
 
 <div class="modal-overlay" id="addModal">
