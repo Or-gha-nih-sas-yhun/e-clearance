@@ -114,11 +114,15 @@
             <td width="13%"><strong>COURSE/YEAR:</strong></td>
             <td>{{ $student->program }} &nbsp;–&nbsp; {{ $student->year_level }} &nbsp;({{ $student->section }})</td>
         </tr>
+        {{-- The term the college is running, set in Main Admin -> System Settings.
+             These used to be guesses: the year came from the server clock and the
+             semester from a `student_account.semester` column that does not exist,
+             so the form always printed a hardcoded "2nd Semester". --}}
         <tr>
             <td><strong>A.Y.:</strong></td>
-            <td>{{ now()->year }}–{{ now()->year + 1 }}</td>
+            <td>{{ \App\Support\AcademicTerm::academicYear() ?? now()->year.'–'.(now()->year + 1) }}</td>
             <td><strong>SEMESTER:</strong></td>
-            <td>{{ $student->semester ?? '2nd Semester' }}</td>
+            <td>{{ \App\Support\AcademicTerm::semester() ?? '—' }}</td>
         </tr>
         <tr>
             <td><strong>ID NUM:</strong></td>

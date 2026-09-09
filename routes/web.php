@@ -152,6 +152,7 @@ Route::middleware(['admin.auth', 'no.history'])
         // End-of-term maintenance. Destructive; each action needs a typed phrase.
         Route::get('/settings', [SystemSettingsController::class, 'index'])->name('settings.index');
         Route::get('/settings/clearance-archive', [SystemSettingsController::class, 'archive'])->name('settings.clearance-archive');
+        Route::post('/settings/term', [SystemSettingsController::class, 'term'])->name('settings.term');
         Route::post('/settings/promote-students', [SystemSettingsController::class, 'promote'])->name('settings.promote');
         Route::post('/settings/reset-clearance', [SystemSettingsController::class, 'reset'])->name('settings.reset');
 

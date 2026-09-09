@@ -9,11 +9,74 @@
     eyebrow="Administration"
 />
 
-<div class="data-table-wrap" style="border-left:4px solid var(--danger,#d9534f);">
+{{-- ============ ACTIVE TERM ============ --}}
+<div class="data-table-wrap">
+    <div class="data-table-header">
+        <h3><i class="bi bi-calendar3"></i> Active Term</h3>
+        <span>{{ $activeSemester ? \App\Support\AcademicTerm::label() : 'Not set' }}</span>
+    </div>
+
     <div style="padding:18px 22px;">
-        <h3 style="margin:0 0 6px;font-size:15px;"><i class="bi bi-exclamation-triangle-fill" style="color:var(--danger,#d9534f);margin-right:7px;"></i>Read before using this page</h3>
+        <p style="margin:0 0 14px;color:var(--muted);font-size:13px;line-height:1.6;">
+            The semester and academic year the college is currently running. Changing the semester decides which
+            subjects can be assigned to instructors — <strong>only subjects belonging to the active semester appear
+            in the subject dropdown</strong> on the Subject Assignments page and in an irregular student's own
+            subject picker. Existing assignments are left alone. This setting is safe to change back at any time.
+        </p>
+
+        @if($termSubjectCounts !== [])
+        <div class="dept-pills" style="margin-bottom:16px;">
+            @foreach($termSubjectCounts as $semester => $count)
+                <span class="dept-pill {{ $activeSemester === $semester ? 'active' : '' }}">{{ $semester }}: <strong>{{ $count }}</strong> subject(s)</span>
+            @endforeach
+        </div>
+        @endif
+
+        @if(! $termAvailable)
+            <div class="empty-state" style="text-align:left;margin-bottom:14px;">
+                <i class="bi bi-database-exclamation"></i>
+                <strong style="display:block;margin-bottom:5px;">The <code>system_settings</code> table is missing.</strong>
+                <span style="color:var(--muted);font-size:13px;">
+                    The term cannot be saved until it exists. Run <code>php artisan migrate</code>, or apply
+                    <code>database/sql/system_settings.sql</code>. Until then every subject stays available for
+                    assignment, exactly as before.
+                </span>
+            </div>
+        @endif
+
+        <form method="POST" action="{{ route('settings.term') }}" autocomplete="off">
+            @csrf
+            <div class="form-row" style="align-items:flex-end;">
+                <div class="fg" style="max-width:260px;">
+                    <label>Semester</label>
+                    <select name="semester" required @disabled(! $termAvailable)>
+                        <option value="">Choose semester</option>
+                        @foreach($semesters as $semester)
+                        <option value="{{ $semester }}" {{ $activeSemester === $semester ? 'selected' : '' }}>{{ $semester }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="fg" style="max-width:260px;">
+                    <label>Academic Year <small>(optional)</small></label>
+                    <input name="academic_year" value="{{ old('academic_year', $academicYear) }}" placeholder="2026-2027"
+                           pattern="\d{4}\s*-\s*\d{4}" title="Two years, for example 2026-2027"
+                           @disabled(! $termAvailable)>
+                </div>
+                <div class="fg" style="max-width:210px;">
+                    <button type="submit" class="btn-save" @disabled(! $termAvailable)>
+                        <i class="bi bi-check-circle-fill"></i> Save Term
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="data-table-wrap" style="margin-top:18px;border-left:4px solid var(--danger,#d9534f);">
+    <div style="padding:18px 22px;">
+        <h3 style="margin:0 0 6px;font-size:15px;"><i class="bi bi-exclamation-triangle-fill" style="color:var(--danger,#d9534f);margin-right:7px;"></i>Read before using the actions below</h3>
         <p style="margin:0;color:var(--muted);font-size:13px;line-height:1.6;">
-            Nothing on this page can be undone. Each action shows exactly what it will affect and needs its
+            The two actions below this point cannot be undone. Each shows exactly what it will affect and needs its
             confirmation phrase typed in full before it runs. Run these at the end of a term, never during one.
         </p>
     </div>

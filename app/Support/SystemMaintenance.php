@@ -35,6 +35,31 @@ final class SystemMaintenance
     /** Tables whose rows own an uploaded file that must leave storage too. */
     private const UPLOAD_TABLES = ['student_submissions', 'office_submissions'];
 
+    /**
+     * How many subjects sit in each semester, so the settings page can show what
+     * choosing a term will actually make available for assignment.
+     *
+     * @return array<string, int>
+     */
+    public static function subjectsPerSemester(): array
+    {
+        if (! Schema::hasTable('subject_codes')) {
+            return [];
+        }
+
+        $counts = DB::table('subject_codes')
+            ->selectRaw('semester, COUNT(*) as total')
+            ->groupBy('semester')
+            ->pluck('total', 'semester');
+
+        $perSemester = [];
+        foreach (AcademicTerm::SEMESTERS as $semester) {
+            $perSemester[$semester] = (int) ($counts[$semester] ?? 0);
+        }
+
+        return $perSemester;
+    }
+
     public static function statusColumnAvailable(): bool
     {
         return Schema::hasTable('student_account') && Schema::hasColumn('student_account', 'status');

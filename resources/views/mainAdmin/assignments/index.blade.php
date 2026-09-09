@@ -53,6 +53,9 @@
     eyebrow="Academic setup"
 >
     <x-slot:actions>
+        <a href="{{ route('settings.index') }}" class="btn-back" title="Change the active term in System Settings">
+            <i class="bi bi-calendar3"></i> {{ $termLabel }}
+        </a>
         @if($stage === 'instructor')
             <a href="{{ route('assignments.index', ['department' => $department]) }}" class="btn-back"><i class="bi bi-arrow-left"></i> Back to {{ $department }}</a>
         @endif
@@ -112,7 +115,7 @@
                         </select>
                     </div>
                 </div>
-                <div class="fg"><label>Subject <small class="text-muted">(only subjects set up for that program and year)</small></label>
+                <div class="fg"><label>Subject <small class="text-muted">{{ $activeSemester ? '(only '.$activeSemester.' subjects for that program and year)' : '(only subjects set up for that program and year)' }}</small></label>
                     <select name="subject_id" id="add_subject" required>
                         <option value="">Select program and year first</option>
                     </select>
@@ -334,6 +337,7 @@
 <script>
 const assignmentSections = @json($sections);
 const assignmentSubjects = @json($subjects);
+const activeSemester = @json($activeSemester);
 
 function assignmentFormIds(formType) {
     return formType === 'add'
@@ -356,18 +360,26 @@ function filterAssignmentSubjects(formType, selectedSubject = '') {
         return;
     }
 
+    // Only the active semester's subjects can be assigned. The one an existing
+    // assignment already uses stays listed even if it is from another semester,
+    // so editing that row is not a dead end.
     const matching = assignmentSubjects.filter(subject =>
         String(subject.year_level) === String(yearLevel)
-        && String(subject.program || '').split(',').map(part => part.trim()).includes(program));
+        && String(subject.program || '').split(',').map(part => part.trim()).includes(program)
+        && (!activeSemester
+            || subject.semester === activeSemester
+            || String(subject.subject_id) === String(selectedSubject)));
 
     select.innerHTML = matching.length
         ? '<option value="">Select subject</option>'
-        : '<option value="">No subject is set up for this program and year</option>';
+        : `<option value="">No ${activeSemester ? activeSemester + ' ' : ''}subject is set up for this program and year</option>`;
 
     matching.forEach(subject => {
         const option = document.createElement('option');
         option.value = subject.subject_id;
-        option.textContent = `${subject.subject_code} — ${subject.subject_description}`;
+        option.textContent = activeSemester && subject.semester !== activeSemester
+            ? `${subject.subject_code} — ${subject.subject_description} (${subject.semester})`
+            : `${subject.subject_code} — ${subject.subject_description}`;
         option.selected = String(subject.subject_id) === String(selectedSubject);
         select.appendChild(option);
     });

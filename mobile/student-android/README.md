@@ -8,6 +8,8 @@ The app uses the existing responsive Laravel student portal inside a restricted 
 
 - Student routes only (`/student/...`)
 - Account self-registration, including the emailed six-digit registration code
+- **My Subjects** for irregular students: choosing each subject and the
+  instructor who will clear it (`/student/my-subjects`)
 - New-device sign-in verification (emailed six-digit code)
 - Cross-role chat support with instructors, offices, treasurers, and the registrar
 - Persistent Laravel login session through first-party cookies, flushed to disk
@@ -36,8 +38,9 @@ bounced back to the student login, and anything off-origin opens in the browser.
 So when adding a student feature to the website:
 
 - Put its routes under the `student.` prefix (`/student/...`) and it just works.
-  Account registration (`/student/register...`) and chat support
-  (`/student/chat-support`) both qualify.
+  Account registration (`/student/register...`), chat support
+  (`/student/chat-support`) and the irregular-student subject picker
+  (`/student/my-subjects`) all qualify — none of them needed an Android change.
 - Subresources are unaffected — the allow-list only sees navigations. The login
   captcha `<img>` and the notification-bell `fetch()` calls live outside
   `/student/` and still work.

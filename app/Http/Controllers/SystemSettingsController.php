@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\AcademicTerm;
 use App\Support\SystemMaintenance;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -29,7 +31,60 @@ class SystemSettingsController extends Controller
             'statusColumnAvailable' => SystemMaintenance::statusColumnAvailable(),
             'promotePhrase' => self::PROMOTE_PHRASE,
             'resetPhrase' => self::RESET_PHRASE,
+            'termAvailable' => AcademicTerm::available(),
+            'semesters' => AcademicTerm::SEMESTERS,
+            'activeSemester' => AcademicTerm::semester(),
+            'academicYear' => AcademicTerm::academicYear(),
+            'termSubjectCounts' => SystemMaintenance::subjectsPerSemester(),
         ]);
+    }
+
+    /**
+     * Set the term the college is running.
+     *
+     * Reversible and non-destructive, so unlike promotion and the clearance
+     * reset it takes no confirmation phrase — but it does decide which subjects
+     * appear when assigning instructors, so the page says so plainly.
+     */
+    public function term(Request $request)
+    {
+        if (! AcademicTerm::available()) {
+            return back()->with('flash', [
+                'type' => 'error',
+                'title' => 'Term cannot be saved',
+                'message' => 'The system_settings table does not exist yet. Run the migration or database/sql/system_settings.sql first.',
+            ]);
+        }
+
+        $data = $request->validate([
+            'semester' => ['required', Rule::in(AcademicTerm::SEMESTERS)],
+            'academic_year' => ['nullable', 'string', 'max:20', 'regex:/^\d{4}\s*-\s*\d{4}$/'],
+        ], [
+            'semester.required' => 'Choose which semester the college is running.',
+            'academic_year.regex' => 'Write the academic year as two years, for example 2026-2027.',
+        ]);
+
+        $academicYear = $this->normalizeAcademicYear($data['academic_year'] ?? null);
+
+        AcademicTerm::save($data['semester'], $academicYear);
+
+        return back()->with('flash', [
+            'type' => 'success',
+            'title' => 'Term updated',
+            'message' => 'Now running '.AcademicTerm::label().'. Subject assignment only offers subjects for this semester.',
+        ]);
+    }
+
+    /** Store the year as `2026-2027`, however the admin spaced it. */
+    private function normalizeAcademicYear(?string $academicYear): ?string
+    {
+        $academicYear = trim((string) $academicYear);
+
+        if ($academicYear === '') {
+            return null;
+        }
+
+        return preg_replace('/\s*-\s*/', '-', $academicYear);
     }
 
     public function promote(Request $request)

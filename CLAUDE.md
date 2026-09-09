@@ -132,6 +132,33 @@ does the work; `SystemSettingsController` only gates it.
   the column, promotion is disabled and the page explains why rather than
   silently graduating nobody.
 
+## Active term (Main Admin -> System Settings)
+
+`system_settings` is a small key/value table; its first tenant is the term the
+college is running. `App\Support\AcademicTerm` owns it —
+`active_semester` (`1st Semester` / `2nd Semester` / `Summer`) and
+`academic_year` (stored as `2026-2027`).
+
+- The semester has **one functional effect**: only its subjects can be assigned.
+  The Subject Assignments dropdown lists just that semester's subjects, an
+  irregular student's own picker (`StudentSubjects::offeredSubjects()`) follows
+  the same rule, and `ensureSubjectScope()` re-checks it server-side.
+- That server check runs **on create only** (`enforceTerm: true` from `store()`,
+  false from `update()`). Blocking edits would trap the admin: an assignment
+  made last term is still listed, and they must be able to fix its section or
+  year without being told to change the whole college's term first. The edit
+  dropdown likewise keeps the assignment's own subject listed — labelled with
+  its semester — even when it is out of term.
+- The academic year is a label. It fixes the printed clearance form, which used
+  to guess: the A.Y. came from `now()->year` and the semester from a
+  `student_account.semester` column **that does not exist**, so every form
+  printed a hardcoded "2nd Semester".
+- **With no term set — or on a database without `system_settings` — every
+  subject stays assignable**, which is exactly how the system behaved before
+  the setting existed. `database/sql/system_settings.sql` creates the table by
+  hand; deploys never migrate. `AcademicTerm::forget()` drops the per-request
+  memo, which tests need when they change the term mid-run.
+
 ## Instructor faculty details
 
 Two things about `instructor_account` that no other portal shares.
@@ -341,7 +368,7 @@ display name across the seven tables, one query per portal.
 ## Commands
 
 ```bash
-php artisan test                          # 282 tests, all should pass
+php artisan test                          # 291 tests, all should pass
 php artisan test --filter=SomeTest        # prefer this while iterating
 npm run build                             # vite -> public/build
 php artisan security:preflight --document-root=/path/to/public

@@ -166,9 +166,13 @@ final class StudentSubjects
      */
     public static function offeredSubjects(): Collection
     {
-        return DB::table('instructor_assignment as ia')
-            ->join('subject_codes as sc', 'sc.subject_id', '=', 'ia.subject_id')
-            ->join('instructor_account as i', 'i.instructor_id', '=', 'ia.instructor_id')
+        // Only this term's subjects, the same rule the assignment form follows.
+        return AcademicTerm::scopeSubjects(
+            DB::table('instructor_assignment as ia')
+                ->join('subject_codes as sc', 'sc.subject_id', '=', 'ia.subject_id')
+                ->join('instructor_account as i', 'i.instructor_id', '=', 'ia.instructor_id'),
+            'sc.semester',
+        )
             ->distinct()
             ->orderBy('sc.subject_code')->orderBy('i.lastname')
             ->get([

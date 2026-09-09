@@ -6,6 +6,7 @@ use App\Models\Instructor;
 use App\Models\InstructorAssignment;
 use App\Models\ProgramSection;
 use App\Models\SubjectCode;
+use App\Support\AcademicTerm;
 use App\Support\InstructorDepartment;
 use App\Support\ListPageSize;
 use App\Support\RecordPurge;
@@ -76,6 +77,8 @@ class InstructorAssignmentController extends Controller
             'instructors' => $this->allInstructors(),
             'subjects' => $this->allSubjects(),
             'sections' => $this->allSections(),
+            'activeSemester' => AcademicTerm::semester(),
+            'termLabel' => AcademicTerm::label(),
         ]);
     }
 
@@ -89,7 +92,7 @@ class InstructorAssignmentController extends Controller
             'sections' => 'required|array|min:1|max:20',
             'sections.*' => 'required|string|max:50|distinct',
         ]);
-        $this->ensureSubjectScope($data);
+        $this->ensureSubjectScope($data, enforceTerm: true);
 
         $sections = collect($data['sections'])->map(fn ($section) => strtoupper(trim($section)))->unique()->values();
         $this->ensureManagedSections($data, $sections);
@@ -130,7 +133,7 @@ class InstructorAssignmentController extends Controller
             'sections.*' => 'required|string|max:50|distinct',
         ]);
         $assignment = InstructorAssignment::findOrFail($id);
-        $this->ensureSubjectScope($data);
+        $this->ensureSubjectScope($data, enforceTerm: false);
         $sections = collect($data['sections'])->map(fn ($section) => strtoupper(trim($section)))->unique()->values();
         $this->ensureManagedSections($data, $sections);
 
@@ -196,6 +199,8 @@ class InstructorAssignmentController extends Controller
             'instructors' => $this->allInstructors(),
             'subjects' => $this->allSubjects(),
             'sections' => $this->allSections(),
+            'activeSemester' => AcademicTerm::semester(),
+            'termLabel' => AcademicTerm::label(),
         ]);
     }
 
@@ -384,7 +389,7 @@ class InstructorAssignmentController extends Controller
         return ProgramSection::orderBy('program')->orderBy('year_level')->orderBy('section')->get();
     }
 
-    private function ensureSubjectScope(array $data): void
+    private function ensureSubjectScope(array $data, bool $enforceTerm): void
     {
         $matches = SubjectCode::whereKey($data['subject_id'])
             ->where('year_level', $data['year_level'])
@@ -400,6 +405,15 @@ class InstructorAssignmentController extends Controller
         if (! $matches) {
             throw ValidationException::withMessages([
                 'subject_id' => 'Select a subject configured for the chosen program and year level.',
+            ]);
+        }
+
+        $semester = SubjectCode::whereKey($data['subject_id'])->value('semester');
+
+        if ($enforceTerm && ! AcademicTerm::includesSubject($semester)) {
+            throw ValidationException::withMessages([
+                'subject_id' => 'That subject belongs to '.($semester ?: 'another semester').
+                    ', but the college is running '.AcademicTerm::semester().'. Change the active term in System Settings first.',
             ]);
         }
     }
