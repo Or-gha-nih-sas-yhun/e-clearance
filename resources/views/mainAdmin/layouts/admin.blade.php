@@ -45,16 +45,6 @@
             border-color: rgba(255,255,255,.96) !important;
             box-shadow: 0 22px 52px rgba(32,94,145,.2), 0 7px 17px rgba(44,118,174,.11), inset 0 1px 0 #fff !important;
         }
-        .notification-panel { position:fixed; top:72px; right:18px; width:min(400px,calc(100% - 2rem)); max-height:460px; background:#fff; border-radius:12px; box-shadow:0 20px 55px rgba(15,23,42,.22); z-index:10000; overflow:hidden; display:none; }
-        .notification-panel.open { display:block; }
-        .notification-header { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-bottom:1px solid #e5e7eb; }
-        .notification-list { max-height:360px; overflow-y:auto; }
-        .notification-item { padding:12px 16px; border-bottom:1px solid #eef2f7; }
-        .notification-item.unread { background:#eff6ff; }
-        .notification-meta { display:flex; justify-content:space-between; gap:10px; color:#64748b; font-size:.78rem; margin-top:6px; }
-        .notification-actions { display:flex; align-items:center; gap:10px; }
-        .notification-delete { border:0; background:transparent; color:#dc3545; padding:0; cursor:pointer; }
-        .notification-empty { padding:24px; text-align:center; color:#64748b; }
         .action-dialog-overlay { position:fixed; inset:0; z-index:100000; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(26,48,76,.46); backdrop-filter:blur(7px); -webkit-backdrop-filter:blur(7px); }
         .action-dialog-overlay.show { display:flex; animation:dialogFade .18s ease-out; }
         .action-dialog { position:relative; isolation:isolate; width:min(430px,100%); overflow:hidden; color:#172033; border:1px solid rgba(255,255,255,.9); border-radius:22px; background:linear-gradient(135deg,rgba(255,255,255,.93),rgba(228,243,255,.82)); box-shadow:0 35px 90px rgba(15,45,75,.34),0 10px 30px rgba(52,126,177,.18),inset 0 1px 1px #fff,inset 0 -1px 0 rgba(112,165,204,.22); backdrop-filter:blur(30px) saturate(165%); -webkit-backdrop-filter:blur(30px) saturate(165%); animation:dialogPop .2s ease-out; }
@@ -113,25 +103,7 @@
             </div>
             <i class="bi bi-chevron-down student-account-chevron" aria-hidden="true"></i>
         </a>
-        <button id="notifBtn" class="user-pill" style="position:relative;border:0;cursor:pointer;" type="button" onclick="toggleNotifications()" aria-label="Open notifications" aria-controls="notifPanel" aria-expanded="false">
-            <i class="bi bi-bell-fill" style="font-size:18px"></i>
-            <span id="notifBadge" style="display:none;position:absolute;top:-6px;right:-6px;background:#f43f5e;color:#fff;border-radius:999px;font-size:10px;padding:1px 5px;"></span>
-        </button>
     </div>
-</div>
-
-<div class="notification-panel" id="notifPanel" role="dialog" aria-modal="true" aria-label="Notifications">
-    <div class="notification-header">
-        <div class="panel-heading">
-            <span class="panel-icon"><i class="bi bi-bell-fill"></i></span>
-            <div class="panel-heading-copy"><div class="notification-title">Notifications</div><div class="subtitle">Latest alerts and updates</div></div>
-        </div>
-        <div class="panel-actions">
-            <button class="panel-text-button" id="markAllReadBtn" type="button"><i class="bi bi-check2-all me-1"></i>Mark all read</button>
-            <button class="panel-close" type="button" onclick="closeNotifications()" aria-label="Close notifications"><i class="bi bi-x-lg"></i></button>
-        </div>
-    </div>
-    <div class="notifications-list" id="notifList"><div class="empty-state">Loading notifications…</div></div>
 </div>
 
 {{-- SIDEBAR --}}
@@ -163,9 +135,6 @@
             <a href="{{ route('treasurers.index') }}" class="nav-link {{ request()->routeIs('treasurers*') ? 'active' : '' }}"><i class="bi bi-wallet2"></i> Treasurer Accounts</a>
             <div class="nav-section">Monitoring</div>
             <a href="{{ route('activity.index') }}" class="nav-link {{ request()->routeIs('activity*') ? 'active' : '' }}"><i class="bi bi-activity"></i> User Activity</a>
-            <div class="nav-section">Communication</div>
-            <a href="{{ route('chat.index') }}" class="nav-link {{ request()->routeIs('chat*') ? 'active' : '' }}"><i class="bi bi-chat-square-text"></i> Chat Support</a>
-            <a href="{{ route('notifications.index') }}" class="nav-link {{ request()->routeIs('notifications*') ? 'active' : '' }}"><i class="bi bi-bell"></i> Notifications</a>
         </div>
 
         <div class="sidebar-account-group">
@@ -208,7 +177,6 @@ function toggleSidebar() {
     const main = document.getElementById('mainContent');
     const willOpen = !sidebar.classList.contains('open');
 
-    if (willOpen) closeNotifications();
     sidebar.classList.toggle('open', willOpen);
     sidebar.classList.toggle('closed', !willOpen);
     if (overlay) overlay.classList.toggle('show', willOpen);
@@ -223,6 +191,12 @@ function closeSidebar() {
     sidebar.classList.add('closed');
     if (overlay) overlay.classList.remove('show');
     main?.classList.remove('sidebar-open');
+}
+
+// The backdrop and the sidebar's close button both call this. It used to close
+// the notification panel as well; the sidebar is the only overlay left.
+function closeAdminOverlays() {
+    closeSidebar();
 }
 
 function openCsvModal(type = '') {
@@ -248,76 +222,6 @@ function setCsvType(value) {
     if (hidden) hidden.value = value;
 }
 
-function escapeNotificationText(value) {
-    const element = document.createElement('div');
-    element.textContent = value || '';
-    return element.innerHTML;
-}
-async function loadNotifications() {
-    const list = document.getElementById('notifList');
-    const badge = document.getElementById('notifBadge');
-    try {
-        const response = await fetch(`${@json(route('notifications.api'))}?guard=admin`, { headers: { Accept: 'application/json' } });
-        if (!response.ok) throw new Error('Unable to load notifications');
-        const data = await response.json();
-        if (badge) {
-            badge.style.display = data.unread > 0 ? 'inline-block' : 'none';
-            badge.textContent = data.unread > 99 ? '99+' : data.unread;
-        }
-        if (!data.notifications?.length) {
-            list.innerHTML = '<div class="empty-state">No notifications yet.</div>';
-            return;
-        }
-        list.innerHTML = data.notifications.map(notification => {
-            const link = notification.link_url ? `<a class="item-link" href="${escapeNotificationText(notification.link_url)}">View</a>` : '';
-            const deleteButton = `<button type="button" class="item-delete" onclick="deleteNotification(${notification.id})"><i class="bi bi-trash"></i> Delete</button>`;
-            return `<div class="item ${notification.is_read === 0 ? 'unread' : ''}"><div class="item-message">${escapeNotificationText(notification.message)}</div><div class="item-meta"><span>${escapeNotificationText(notification.created_at)}</span><span class="item-actions">${link}${deleteButton}</span></div></div>`;
-        }).join('');
-    } catch (error) {
-        list.innerHTML = '<div class="empty-state">Unable to load notifications.</div>';
-    }
-}
-async function deleteNotification(notificationId) {
-    const confirmed = await showActionDialog({ title: 'Confirm Deletion', message: 'Are you sure you want to delete this notification?\nThis action cannot be undone.', confirmText: 'Yes, Delete' });
-    if (!confirmed) return;
-    const response = await fetch(`${@json(url('/notifications/api'))}/${notificationId}?guard=admin`, {
-        method: 'DELETE',
-        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, Accept: 'application/json' },
-    });
-    if (response.ok) loadNotifications();
-}
-function toggleNotifications() {
-    const panel = document.getElementById('notifPanel');
-    const overlay = document.getElementById('overlay');
-    const willOpen = !panel.classList.contains('open');
-
-    if (willOpen) closeSidebar();
-    panel.classList.toggle('open', willOpen);
-    document.getElementById('notifBtn')?.setAttribute('aria-expanded', String(willOpen));
-    overlay?.classList.toggle('show', willOpen);
-    if (willOpen) loadNotifications();
-}
-function closeNotifications() {
-    document.getElementById('notifPanel')?.classList.remove('open');
-    document.getElementById('notifBtn')?.setAttribute('aria-expanded', 'false');
-    document.getElementById('overlay')?.classList.remove('show');
-}
-function closeAdminOverlays() {
-    closeSidebar();
-    closeNotifications();
-}
-async function markAllNotificationsRead() {
-    const response = await fetch(`${@json(route('notifications.api.readAll'))}?guard=admin`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, Accept: 'application/json' },
-    });
-    if (response.ok) loadNotifications();
-}
-document.addEventListener('DOMContentLoaded', () => {
-    loadNotifications();
-    document.getElementById('markAllReadBtn')?.addEventListener('click', markAllNotificationsRead);
-});
-setInterval(loadNotifications, 30000);
 
 function prepareConditionalAccountRules(form) {
     const passwordField = form.querySelector('input[name="password"]');

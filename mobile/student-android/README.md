@@ -9,7 +9,15 @@ The app uses the existing responsive Laravel student portal inside a restricted 
 - Student routes only (`/student/...`)
 - Account self-registration, including the emailed six-digit registration code
 - **My Subjects** for irregular students: choosing each subject and the
-  instructor who will clear it (`/student/my-subjects`)
+  instructor who will clear it (`/student/my-subjects`), narrowed to the
+  semester the college is currently running
+- The College of Education Department Head clearance step, which BSED and BEED
+  students pass through after their own program head
+- The official clearance form with the college and municipality letterhead, the
+  verification QR at the foot of the page, and the real academic year and
+  semester
+- Chat contacts labelled usefully: an instructor by the subjects they teach that
+  student, a student by their year level and section
 - New-device sign-in verification (emailed six-digit code)
 - Cross-role chat support with instructors, offices, treasurers, and the registrar
 - Persistent Laravel login session through first-party cookies, flushed to disk

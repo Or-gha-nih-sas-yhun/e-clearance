@@ -60,27 +60,6 @@ class MainAdminRedesignTest extends TestCase
         }
     }
 
-    public function test_chat_and_notifications_pages_render_their_supplied_records(): void
-    {
-        $chatSource = (string) file_get_contents(
-            resource_path('views/mainAdmin/chat/index.blade.php'),
-        );
-        $notificationsSource = (string) file_get_contents(
-            resource_path('views/mainAdmin/notifications/index.blade.php'),
-        );
-
-        $this->assertMatchesRegularExpression(
-            '/@(forelse|foreach)\s*\(\s*\$messages\s+as\s+\$[A-Za-z_][A-Za-z0-9_]*/',
-            $chatSource,
-            'The Main Admin chat page must iterate the $messages supplied by ChatController.',
-        );
-        $this->assertMatchesRegularExpression(
-            '/@(forelse|foreach)\s*\(\s*\$notifications\s+as\s+\$[A-Za-z_][A-Za-z0-9_]*/',
-            $notificationsSource,
-            'The Main Admin notifications page must iterate the $notifications supplied by NotificationController.',
-        );
-    }
-
     public function test_every_routed_protected_main_admin_view_compiles(): void
     {
         foreach ($this->protectedMainAdminViews() as $viewName => $viewPath) {

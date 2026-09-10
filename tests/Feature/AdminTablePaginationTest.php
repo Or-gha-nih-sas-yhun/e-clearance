@@ -30,8 +30,6 @@ class AdminTablePaginationTest extends TestCase
             'assignments' => ['assignments.index'],
             'student registry' => ['student-registry.index'],
             'activity log' => ['activity.index'],
-            'chat support' => ['chat.index'],
-            'notifications' => ['notifications.index'],
         ];
     }
 

@@ -5,13 +5,11 @@ use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AdminPersonnelController;
 use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Auth\LoginCaptchaController;
-use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ClearanceFormController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImportCsvController;
 use App\Http\Controllers\InstructorAssignmentController;
 use App\Http\Controllers\InstructorController;
-use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationsApiController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\PortalPasswordCodeController;
@@ -196,12 +194,6 @@ Route::middleware(['admin.auth', 'no.history'])
         Route::post('/assignments', [InstructorAssignmentController::class, 'store'])->name('assignments.store');
         Route::put('/assignments/{id}', [InstructorAssignmentController::class, 'update'])->name('assignments.update');
         Route::delete('/assignments/{id}', [InstructorAssignmentController::class, 'destroy'])->name('assignments.destroy');
-
-        // Chat
-        Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
-
-        // Notifications
-        Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
 
         // User activity trail (devices, sign-ins, and recorded changes)
         Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');

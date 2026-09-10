@@ -223,7 +223,19 @@ Two separate status tables — don't conflate them:
 
 `App\Support\ClearanceWorkflow` owns the rules:
 
-- `OFFICE_ROLES` defines the nine offices and their order, ending at `registrar`.
+- `OFFICE_ROLES` defines the office order, ending at `registrar`. **The chain is
+  per-student, not fixed** — `officeChainFor($student)` returns the offices that
+  student actually passes through, each with what it waits on, and
+  `officeApplies()` decides the conditional ones. It is the single description
+  of the chain: the student's clearance page, the printed form, the QR
+  verification summary and `prerequisitesMet()` all read it, so a step cannot
+  appear on one screen and be missing from another.
+- **College of Education Department Head** (`education_department_head`) is the
+  one conditional office so far. Only `BSED` and `BEED` students have it
+  (`EDUCATION_PROGRAMS`); it waits on their own program head (`dean`), and the
+  registrar waits on it. Every other program's chain is unchanged at nine
+  offices. `normalizeOfficeRole()` must recognise it **before** the generic
+  `'department head' => 'dean'` arm, or it collapses into the program head.
 - `normalizeOfficeRole()` — office role strings are stored inconsistently
   (`'Section Treasurer'`, `'section_treasurer'`, …). Always normalize; queries use
   `whereRaw("LOWER(TRIM(office_role)) = ?")`.
@@ -368,7 +380,7 @@ display name across the seven tables, one query per portal.
 ## Commands
 
 ```bash
-php artisan test                          # 291 tests, all should pass
+php artisan test                          # 301 tests, all should pass
 php artisan test --filter=SomeTest        # prefer this while iterating
 npm run build                             # vite -> public/build
 php artisan security:preflight --document-root=/path/to/public

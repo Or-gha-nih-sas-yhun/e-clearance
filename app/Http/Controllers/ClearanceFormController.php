@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ClearanceWorkflow;
 use App\Support\SectionKey;
 use App\Support\StudentSubjects;
 
@@ -191,10 +192,49 @@ class ClearanceFormController extends Controller
         $qrCodeDataUri = (new PngWriter)->write($qrCode)->getDataUri();
 
         return compact('student', 'subjects', 'offices', 'isRegistrar', 'verificationUrl', 'qrCodeDataUri') + [
+            'collegeLogo' => $this->letterheadLogo('mcc-logo.png'),
+            'municipalityLogo' => $this->letterheadLogo('madridejos-seal.png'),
             'deanName' => $deanName,
             'deanStatus' => $statuses->get('dean')->status ?? 'Pending',
+            // Only BSED and BEED pass through the College of Education
+            // Department Head; for everyone else this block is not printed.
+            'educationHeadApplies' => ClearanceWorkflow::officeApplies('education department head', $student),
+            'educationHeadName' => $this->approverName(
+                $statuses->get('education department head')->approver_id ?? null,
+                $officePersonnel,
+                'education department head',
+            ),
+            'educationHeadStatus' => $statuses->get('education department head')->status ?? 'Pending',
             'overallStatus' => $subjectDone && $officeDone ? 'Cleared' : 'In Progress',
         ];
+    }
+
+    /**
+     * A letterhead logo as a data URI, or null when the file is not there.
+     *
+     * Embedding rather than linking is what makes the logo survive the PDF:
+     * Dompdf runs with `isRemoteEnabled` off, so an asset() URL would silently
+     * fail to load. Returning null for a missing file lets the header keep its
+     * balance instead of printing a broken image on an official document.
+     */
+    private function letterheadLogo(string $filename): ?string
+    {
+        $path = public_path('images/'.$filename);
+
+        if (! is_file($path) || ! is_readable($path)) {
+            return null;
+        }
+
+        // Read the type from the file itself, never from its name. A logo saved
+        // as a JPEG but named .png would otherwise be announced as image/png,
+        // and a renderer that trusts the declared type would drop it.
+        $mime = @mime_content_type($path) ?: (getimagesize($path)['mime'] ?? null);
+
+        if (! is_string($mime) || ! str_starts_with($mime, 'image/')) {
+            return null;
+        }
+
+        return 'data:'.$mime.';base64,'.base64_encode((string) file_get_contents($path));
     }
 
     private function verificationTokenFor(StudentAccount $student): string
@@ -239,10 +279,9 @@ class ClearanceFormController extends Controller
             ->where('status', 'Approved')
             ->exists());
 
-        $requiredOffices = [
-            'section treasurer', 'department treasurer', 'property custodian', 'scc adviser',
-            'sas director', 'guidance office', 'library', 'dean', 'registrar',
-        ];
+        // BSED and BEED students have one more office than everyone else, so the
+        // required list is theirs, not a fixed nine.
+        $requiredOffices = array_column(ClearanceWorkflow::officeChainFor($student), 'key');
         $approvedOffices = DB::table('office_clearance_status')
             ->where('student_id', $student->student_id)
             ->where('status', 'Approved')
@@ -257,6 +296,16 @@ class ClearanceFormController extends Controller
             && $approvedOffices === count($requiredOffices);
 
         return ['overallStatus' => $cleared ? 'Cleared' : 'In Progress'];
+    }
+
+    /** The printed name for an office signature: the approver, else the office holder. */
+    private function approverName(?string $approverId, array $officePersonnel, string $role): ?string
+    {
+        if ($approverId && isset($officePersonnel['byId'][$approverId])) {
+            return $officePersonnel['byId'][$approverId];
+        }
+
+        return $officePersonnel['byRole'][$role] ?? null;
     }
 
     private function officePersonnel(?string $program): array

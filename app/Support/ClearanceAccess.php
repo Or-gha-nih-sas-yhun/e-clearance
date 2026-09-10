@@ -55,6 +55,12 @@ final class ClearanceAccess
             }
         }
 
+        // The College of Education Department Head sits above the BSED and BEED
+        // program heads and reaches only their students.
+        if (! ClearanceWorkflow::officeApplies($officeRole, $student)) {
+            return false;
+        }
+
         return $this->studentHasOfficeRequest($student, $officeRole);
     }
 
@@ -146,6 +152,13 @@ final class ClearanceAccess
                 "LOWER(TRIM({$studentTable}.program)) = LOWER(TRIM(?))",
                 [$program]
             );
+        }
+
+        if ($officeRole === 'education department head') {
+            $programs = ClearanceWorkflow::EDUCATION_PROGRAMS;
+            $placeholders = implode(', ', array_fill(0, count($programs), 'LOWER(TRIM(?))'));
+
+            $query->whereRaw("LOWER(TRIM({$studentTable}.program)) IN ({$placeholders})", $programs);
         }
 
         return $query;

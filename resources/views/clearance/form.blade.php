@@ -19,8 +19,17 @@
         .toolbar a, .toolbar button { border: 0; border-radius: 5px; padding: 9px 14px; background: #1e3a8a; color: #fff; text-decoration: none; font: 700 13px Arial; cursor: pointer; }
         .toolbar button { background: #047857; }
         .paper { max-width: 820px; margin: 0 auto 20px; padding: 28px 32px; background: #fff; border: 1px solid #222; box-shadow: 0 2px 14px #0002; position: relative; }
-        .qr-verification { position: absolute; top: 22px; right: 28px; width: 82px; text-align: center; font: 7px Arial, sans-serif; color: #444; }
-        .qr-verification img { width: 80px; height: 80px; display: block; margin: 0 auto 2px; }
+        /* A logo either side of the centred school name. Dompdf has no flexbox,
+           so a three-cell table is what keeps them aligned in the PDF. */
+        .letterhead { width: 100%; border-collapse: collapse; }
+        .letterhead td { border: 0; padding: 0; vertical-align: middle; }
+        .letterhead-logo { width: 88px; text-align: center; }
+        .letterhead-logo img { width: 80px; height: auto; }
+        .letterhead-copy { text-align: center; padding: 0 10px; }
+
+        /* The QR sits at the foot of the page now, clear of the letterhead. */
+        .qr-verification { margin: 14px auto 0; width: 120px; text-align: center; font: 7px Arial, sans-serif; color: #444; page-break-inside: avoid; }
+        .qr-verification img { width: 92px; height: 92px; display: block; margin: 0 auto 3px; }
         .header { text-align: center; padding-bottom: 8px; margin-bottom: 10px; }
         .school { font-size: 15px; font-weight: bold; text-transform: uppercase; }
         .title { margin: 6px 0 2px; font-size: 14px; font-weight: bold; letter-spacing: 2px; }
@@ -30,6 +39,13 @@
         .left-col { flex: 0 0 63%; border-right: 1px solid #111; }
         .subject-table { width: 100%; border-collapse: collapse; }
         .subject-table th, .subject-table td { border: 1px solid #111; padding: 5px; }
+        /* The frame around this block is drawn once, by .body-layout and by
+           .left-col's right edge. The table's own outer borders sat directly
+           alongside those and printed as a 2px line, which is why the subject
+           grid looked heavier than the offices column beside it. */
+        .subject-table thead th { border-top: none; }
+        .subject-table th:first-child, .subject-table td:first-child { border-left: none; }
+        .subject-table th:last-child, .subject-table td:last-child { border-right: none; }
         .subject-table th { background: #e5e7eb; font-size: 9px; text-transform: uppercase; }
         .subject-table td:nth-child(1) { width: 26%; font-weight: bold; }
         .subject-table td:nth-child(2) { width: 22%; text-align: center; }
@@ -63,7 +79,6 @@
         body.embedded .paper { margin: 0 auto; }
         body.pdf-document { padding: 0; background: #fff; font-size: 9px; }
         body.pdf-document .paper { width: auto; max-width: none; margin: 12px; padding: 18px 22px; border: 1px solid #222; box-shadow: none; }
-        body.pdf-document .qr-verification { top: 18px; right: 22px; }
         body.pdf-document .body-layout { display: table; width: 100%; table-layout: fixed; page-break-inside: avoid; }
         body.pdf-document .left-col { display: table-cell; width: 63%; vertical-align: top; }
         body.pdf-document .right-col { display: table-cell; width: 37%; vertical-align: top; }
@@ -95,16 +110,24 @@
 @endunless
 
 <main class="paper">
-    <div class="qr-verification">
-        <img src="{{ $qrCodeDataUri }}" alt="Registrar verification QR code">
-        Scan for registrar verification
-    </div>
     <header class="header">
-        <div class="school">Madridejos Community College</div>
-        <div style="font-size:10px;color:#444;">Bunakan, Madridejos, Cebu</div>
-        <div class="title">Student Clearance Form</div>
-        <div style="font-size:10px;color:#555;">Registrar's Office &nbsp;|&nbsp; For Student Use</div>
-        <div style="font-size:9px;color:#777;margin-top:2px;">Generated: {{ now()->format('F d, Y \a\t g:i A') }}</div>
+        <table class="letterhead">
+            <tr>
+                <td class="letterhead-logo">
+                    @if($collegeLogo)<img src="{{ $collegeLogo }}" alt="Madridejos Community College logo">@endif
+                </td>
+                <td class="letterhead-copy">
+                    <div class="school">Madridejos Community College</div>
+                    <div style="font-size:10px;color:#444;">Bunakan, Madridejos, Cebu</div>
+                    <div class="title">Student Clearance Form</div>
+                    <div style="font-size:10px;color:#555;">Registrar's Office &nbsp;|&nbsp; For Student Use</div>
+                    <div style="font-size:9px;color:#777;margin-top:2px;">Generated: {{ now()->format('F d, Y \a\t g:i A') }}</div>
+                </td>
+                <td class="letterhead-logo">
+                    @if($municipalityLogo)<img src="{{ $municipalityLogo }}" alt="Municipality of Madridejos seal">@endif
+                </td>
+            </tr>
+        </table>
     </header>
 
     <table class="info-table">
@@ -211,10 +234,28 @@
             <strong style="font-size:10.5px;text-transform:uppercase;">{{ $deanName ?? 'Program Head / College Dean not assigned' }}</strong>
             <span style="font-size:9.5px;">Program Head / College Dean</span>
         </div>
+        @if($educationHeadApplies)
+        {{-- BSED and BEED clear their program head first, then the department
+             head above them, so it signs directly below. --}}
+        <div class="bottom-sig-box" style="border-top:1px solid #111;">
+            @if($educationHeadStatus === 'Approved')
+                <span class="badge badge-approved">Approved</span>
+            @else
+                <span class="badge badge-pending">Pending</span>
+            @endif
+            <strong style="font-size:10.5px;text-transform:uppercase;">{{ $educationHeadName ?? 'College of Education Department Head not assigned' }}</strong>
+            <span style="font-size:9.5px;">College of Education Department Head</span>
+        </div>
+        @endif
     </div>
 
     <div class="status-banner">
         Overall Clearance Status: {{ strtoupper($overallStatus) }}
+    </div>
+
+    <div class="qr-verification">
+        <img src="{{ $qrCodeDataUri }}" alt="Registrar verification QR code">
+        Scan for registrar verification
     </div>
 
     <div class="footer">

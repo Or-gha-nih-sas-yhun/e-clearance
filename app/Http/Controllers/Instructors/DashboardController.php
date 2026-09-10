@@ -203,34 +203,6 @@ class DashboardController extends Controller
         return response()->json(['success' => true, 'message' => 'Deleted.']);
     }
 
-    // GET /instructor/notifications  (ajax_get_notifications)
-    public function notifications()
-    {
-        $instructorId = Auth::guard('instructor')->user()->instructor_id;
-
-        $rows = Notification::where('user_id', $instructorId)->where('recipient_role', 'instructor')
-            ->latest('created_at')->limit(20)->get()
-            ->map(fn ($n) => [
-                'id' => $n->id,
-                'message' => $n->message,
-                'is_read' => (int) $n->is_read,
-                'created_at' => $n->created_at->format('M d, Y g:i A'),
-            ]);
-
-        $unread = Notification::where('user_id', $instructorId)->where('recipient_role', 'instructor')->where('is_read', 0)->count();
-
-        return response()->json(['notifications' => $rows, 'unread' => $unread]);
-    }
-
-    // POST /instructor/notifications/read-all  (ajax_mark_notif_read)
-    public function markNotificationsRead()
-    {
-        Notification::where('user_id', Auth::guard('instructor')->user()->instructor_id)
-            ->where('recipient_role', 'instructor')->update(['is_read' => 1]);
-
-        return response()->json(['success' => true]);
-    }
-
     // PUT /instructor/account  (ajax_update_account)
     public function updateAccount(Request $request)
     {

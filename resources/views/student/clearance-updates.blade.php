@@ -28,6 +28,7 @@
 @endsection
 
 @push('styles')
+<link href="{{ asset('css/clearance_document_viewer.css') }}" rel="stylesheet">
 <style>
     .clearance-progress-card { overflow:hidden; border-radius:18px !important; }
     .clearance-progress-card > .card-header { display:flex; align-items:center; gap:10px; min-height:56px; padding:14px 18px; color:#17304f; }
@@ -53,30 +54,6 @@
     .clearance-form-action:focus-visible { outline:0; box-shadow:0 0 0 4px rgba(37,184,121,.18),0 12px 25px rgba(19,145,91,.25); }
     .clearance-form-action.is-download { background:linear-gradient(135deg,#269ee1,#176fd1); box-shadow:0 9px 21px rgba(23,111,209,.2),inset 0 1px 1px rgba(255,255,255,.3); }
     .clearance-form-waiting { display:inline-flex; min-height:38px; flex:0 0 auto; align-items:center; gap:7px; padding:9px 12px; border-radius:11px; color:#647b91; background:rgba(255,255,255,.58); font-size:.69rem; font-weight:800; white-space:nowrap; }
-    .clearance-document-overlay { position:fixed; z-index:91000; inset:79px 0 0; display:grid; place-items:center; padding:20px; visibility:hidden; opacity:0; background:rgba(27,56,84,.38); backdrop-filter:blur(12px) saturate(125%); -webkit-backdrop-filter:blur(12px) saturate(125%); transition:opacity .22s ease,visibility .22s ease; }
-    .clearance-document-overlay.show { visibility:visible; opacity:1; }
-    .clearance-document-backdrop { position:absolute; inset:0; width:100%; height:100%; padding:0; border:0; outline:0; background:transparent; }
-    .clearance-document-modal { position:relative; isolation:isolate; display:flex; width:min(1040px,100%); height:min(790px,calc(100vh - 119px)); overflow:hidden; flex-direction:column; border:1px solid rgba(255,255,255,.94); border-radius:23px; background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(224,242,254,.88)); box-shadow:0 35px 90px rgba(15,45,75,.32),0 10px 30px rgba(52,126,177,.16),inset 0 1px 1px #fff; backdrop-filter:blur(30px) saturate(165%); -webkit-backdrop-filter:blur(30px) saturate(165%); transform:translateY(14px) scale(.98); transition:transform .24s cubic-bezier(.22,1,.36,1); }
-    .clearance-document-overlay.show .clearance-document-modal { transform:none; }
-    .clearance-document-header { display:flex; min-height:66px; align-items:center; justify-content:space-between; gap:15px; padding:12px 15px 12px 18px; border-bottom:1px solid rgba(166,198,222,.55); background:rgba(255,255,255,.48); }
-    .clearance-document-title { display:flex; min-width:0; align-items:center; gap:11px; }
-    .clearance-document-title > i { display:grid; width:40px; height:40px; flex:0 0 auto; place-items:center; border-radius:12px; color:#137c52; background:rgba(213,249,230,.9); font-size:1.05rem; }
-    .clearance-document-title h3 { margin:0 0 2px; color:#172b43; font-size:.98rem; font-weight:850; }
-    .clearance-document-title p { margin:0; color:#6a7e94; font-size:.68rem; }
-    .clearance-document-controls { display:flex; align-items:center; gap:8px; }
-    .clearance-document-download,.clearance-document-print,.clearance-document-close { display:inline-grid; min-height:38px; place-items:center; border:0; outline:0; border-radius:10px; cursor:pointer; }
-    .clearance-document-download,.clearance-document-print { grid-auto-flow:column; gap:7px; padding:8px 12px; color:#fff; font-size:.72rem; font-weight:800; text-decoration:none; }
-    .clearance-document-print { grid-auto-flow:column; gap:7px; padding:8px 12px; color:#fff; background:linear-gradient(135deg,#239be0,#176fd1); box-shadow:0 8px 18px rgba(23,111,209,.2); font-size:.72rem; font-weight:800; }
-    .clearance-document-download { background:linear-gradient(135deg,#24b879,#118d5b); box-shadow:0 8px 18px rgba(19,145,91,.2); }
-    .clearance-document-download:hover { color:#fff; }
-    .clearance-document-close { width:38px; padding:0; color:#5d7288; background:rgba(255,255,255,.72); box-shadow:inset 0 1px 1px #fff; }
-    .clearance-document-download:focus-visible,.clearance-document-print:focus-visible,.clearance-document-close:focus-visible { outline:0; box-shadow:0 0 0 4px rgba(32,143,218,.16); }
-    .clearance-document-frame-wrap { position:relative; min-height:0; flex:1; padding:12px; }
-    .clearance-document-frame { display:block; width:100%; height:100%; border:1px solid rgba(174,202,222,.7); border-radius:14px; background:#edf3f7; }
-    .clearance-document-loader { position:absolute; inset:12px; display:grid; place-items:center; border-radius:14px; color:#648096; background:linear-gradient(135deg,#f8fcff,#e7f3fb); font-size:.76rem; font-weight:750; text-align:center; transition:opacity .18s ease,visibility .18s ease; }
-    .clearance-document-loader i { display:block; margin:0 auto 8px; color:#168dcc; font-size:1.4rem; }
-    .clearance-document-frame-wrap.loaded .clearance-document-loader { visibility:hidden; opacity:0; }
-    body.clearance-form-viewer-open .main { overflow:hidden; }
     .clearance-icon { display:inline-grid; width:34px; height:34px; flex:0 0 auto; place-items:center; color:#0d6efd; border-radius:10px; background:rgba(13,110,253,.1); font-size:1rem; }
     .office-name { display:flex; align-items:center; gap:.65rem; }
     .office-card-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; padding:18px; }
@@ -136,7 +113,7 @@
     .office-upload-form .form-control { border-color:rgba(174,201,221,.75); border-radius:9px; background:rgba(255,255,255,.75); font-size:.76rem; }
     .office-detail-locked { display:flex; align-items:center; gap:8px; padding:11px 12px; border-radius:11px; color:#697a8e; background:rgba(232,239,245,.7); font-size:.75rem; }
     body.office-detail-open .main { overflow:hidden; }
-    @media(max-width:600px){.clearance-progress-card>.card-body{padding:13px}.clearance-form-panel{align-items:flex-start;flex-wrap:wrap;padding:14px}.clearance-form-copy{width:calc(100% - 62px);flex:1 1 calc(100% - 62px)}.clearance-form-actions{display:grid;width:100%;grid-template-columns:1fr 1fr}.clearance-form-action,.clearance-form-waiting{width:100%}.clearance-document-overlay{inset:67px 0 0;padding:10px}.clearance-document-modal{height:calc(100vh - 87px);border-radius:17px}.clearance-document-header{min-height:62px;padding:10px 11px}.clearance-document-title>i{width:36px;height:36px}.clearance-document-title p{display:none}.clearance-document-download,.clearance-document-print{width:38px;padding:0;font-size:0}.clearance-document-download i,.clearance-document-print i{font-size:.9rem}.clearance-document-frame-wrap{padding:8px}.clearance-document-loader{inset:8px}.office-card-grid{grid-template-columns:1fr;padding:12px}.office-card-meta{align-items:flex-start;flex-direction:column}.office-card-status{align-self:flex-start}.office-detail-overlay{inset:67px 0 0;padding:12px}.office-detail-modal{max-height:calc(100vh - 91px);border-radius:18px}.office-detail-header{padding:14px}.office-detail-body{max-height:calc(100vh - 170px);padding:14px}.office-detail-summary{grid-template-columns:1fr}.office-detail-field.full{grid-column:auto}.office-submission-file{align-items:flex-start;flex-direction:column}}
+    @media(max-width:600px){.clearance-progress-card>.card-body{padding:13px}.clearance-form-panel{align-items:flex-start;flex-wrap:wrap;padding:14px}.clearance-form-copy{width:calc(100% - 62px);flex:1 1 calc(100% - 62px)}.clearance-form-actions{display:grid;width:100%;grid-template-columns:1fr 1fr}.clearance-form-action,.clearance-form-waiting{width:100%}.office-card-grid{grid-template-columns:1fr;padding:12px}.office-card-meta{align-items:flex-start;flex-direction:column}.office-card-status{align-self:flex-start}.office-detail-overlay{inset:67px 0 0;padding:12px}.office-detail-modal{max-height:calc(100vh - 91px);border-radius:18px}.office-detail-header{padding:14px}.office-detail-body{max-height:calc(100vh - 170px);padding:14px}.office-detail-summary{grid-template-columns:1fr}.office-detail-field.full{grid-column:auto}.office-submission-file{align-items:flex-start;flex-direction:column}}
     @media(prefers-reduced-motion:reduce){.office-clearance-card,.office-card-foot i,.office-detail-overlay,.office-detail-modal{transition:none}}
 </style>
 <link href="{{ asset('css/student_clearance_updates.css') }}" rel="stylesheet">
@@ -148,7 +125,8 @@
         'section treasurer' => 'bi-cash-stack', 'department treasurer' => 'bi-bank',
         'property custodian' => 'bi-box-seam', 'scc adviser' => 'bi-people',
         'sas director' => 'bi-person-badge', 'guidance office' => 'bi-heart',
-        'library' => 'bi-book', 'dean' => 'bi-mortarboard', 'registrar' => 'bi-file-earmark-check',
+        'library' => 'bi-book', 'dean' => 'bi-mortarboard',
+        'education department head' => 'bi-buildings', 'registrar' => 'bi-file-earmark-check',
     ];
     $subjectsTotal = (int) $summary['subjectsTotal'];
     $subjectsApproved = (int) $summary['subjectsApproved'];
@@ -270,29 +248,9 @@
 </div>
 
     @if($registrarApproved)
-        <div class="clearance-document-overlay" id="clearanceDocumentViewer" aria-hidden="true">
-            <button class="clearance-document-backdrop" type="button" data-clearance-form-close aria-label="Close clearance form"></button>
-            <section class="clearance-document-modal" role="dialog" aria-modal="true" aria-labelledby="clearanceDocumentTitle">
-                <header class="clearance-document-header">
-                    <div class="clearance-document-title">
-                        <i class="bi bi-file-earmark-check"></i>
-                        <div>
-                            <h3 id="clearanceDocumentTitle">Official Clearance Form</h3>
-                            <p>{{ $student->full_name }} · {{ $student->student_id }}</p>
-                        </div>
-                    </div>
-                    <div class="clearance-document-controls">
-                        <a class="clearance-document-download" href="{{ route('student.clearance.form.download') }}"><i class="bi bi-download"></i>Download PDF</a>
-                        <button class="clearance-document-print" type="button" data-clearance-form-print><i class="bi bi-printer"></i>Print / Save PDF</button>
-                        <button class="clearance-document-close" type="button" data-clearance-form-close aria-label="Close clearance form"><i class="bi bi-x-lg"></i></button>
-                    </div>
-                </header>
-                <div class="clearance-document-frame-wrap">
-                    <div class="clearance-document-loader"><div><i class="bi bi-hourglass-split"></i>Loading official clearance form…</div></div>
-                    <iframe class="clearance-document-frame" title="Official student clearance form" src="about:blank"></iframe>
-                </div>
-            </section>
-        </div>
+        <x-portal.document-viewer
+            subtitle="{{ $student->full_name }} · {{ $student->student_id }}"
+            :download-url="route('student.clearance.form.download')" />
     @endif
 
     @foreach ($officeItems as $office)
@@ -394,49 +352,6 @@
 
 @push('scripts')
 <script>
-(() => {
-    const viewer = document.getElementById('clearanceDocumentViewer');
-    const frame = viewer?.querySelector('.clearance-document-frame');
-    const frameWrap = viewer?.querySelector('.clearance-document-frame-wrap');
-    const openButton = document.querySelector('[data-clearance-form-open]');
-    let lastTrigger = null;
-
-    const closeViewer = () => {
-        if (!viewer?.classList.contains('show')) return;
-        viewer.classList.remove('show');
-        viewer.setAttribute('aria-hidden', 'true');
-        document.body.classList.remove('clearance-form-viewer-open');
-        const trigger = lastTrigger;
-        lastTrigger = null;
-        if (trigger) window.setTimeout(() => trigger.focus(), 160);
-    };
-
-    openButton?.addEventListener('click', () => {
-        if (!viewer || !frame) return;
-        lastTrigger = openButton;
-        frameWrap?.classList.remove('loaded');
-        if (frame.src === 'about:blank' || !frame.src) {
-            frame.src = openButton.dataset.clearanceFormSrc;
-        } else {
-            frameWrap?.classList.add('loaded');
-        }
-        viewer.classList.add('show');
-        viewer.setAttribute('aria-hidden', 'false');
-        document.body.classList.add('clearance-form-viewer-open');
-        window.setTimeout(() => viewer.querySelector('.clearance-document-close')?.focus(), 0);
-    });
-
-    frame?.addEventListener('load', () => frameWrap?.classList.add('loaded'));
-    viewer?.querySelectorAll('[data-clearance-form-close]').forEach(button => button.addEventListener('click', closeViewer));
-    viewer?.querySelector('[data-clearance-form-print]')?.addEventListener('click', () => {
-        frame?.contentWindow?.focus();
-        frame?.contentWindow?.print();
-    });
-    document.addEventListener('keydown', event => {
-        if (event.key === 'Escape' && viewer?.classList.contains('show')) closeViewer();
-    });
-})();
-
 (() => {
     let activeOfficeModal = null;
     let modalTrigger = null;

@@ -6,7 +6,7 @@
 @section('page-title', 'Student Clearance')
 @section('user-label', $registrar->full_name ?? $registrar->email)
 @section('user-role', 'Registrar')
-@push('styles')<link href="{{ asset('css/clearance_workspace.css') }}" rel="stylesheet">@endpush
+@push('styles')<link href="{{ asset('css/clearance_workspace.css') }}" rel="stylesheet"><link href="{{ asset('css/clearance_document_viewer.css') }}" rel="stylesheet">@endpush
 
 @section('nav')
     <a class="nav-link" href="{{ route('registrar.dashboard') }}"><i class="bi bi-speedometer2 me-2"></i> Dashboard</a>
@@ -37,7 +37,7 @@
                     <td>{{ $request->program }}</td><td>{{ $request->year_level }}</td><td>{{ $request->section }}</td>
                     <td>{{ \Illuminate\Support\Carbon::parse($request->requested_at)->format('M d, Y') }}<small class="d-block text-secondary">{{ \Illuminate\Support\Carbon::parse($request->requested_at)->format('h:i A') }}</small></td>
                     <td><span class="clearance-status {{ $request->status === 'Approved' ? 'approved' : 'pending' }}">{{ $request->status === 'Approved' ? 'Approved' : 'Pending' }}</span></td>
-                    <td><div class="clearance-actions"><a class="clearance-action secondary" target="_blank" href="{{ route('registrar.clearance.form', $request->student_id) }}"><i class="bi bi-printer"></i> Form</a><form method="POST" action="{{ route('registrar.student-clearance.status') }}">@csrf<input type="hidden" name="student_id" value="{{ $request->student_id }}"><button name="status" value="Approved" class="clearance-action approve" {{ $request->status === 'Approved' ? 'disabled' : '' }}><i class="bi bi-check-lg"></i> Approve</button></form><form method="POST" action="{{ route('registrar.student-clearance.status') }}">@csrf<input type="hidden" name="student_id" value="{{ $request->student_id }}"><button name="status" value="Pending" class="clearance-action pending" {{ $request->status !== 'Approved' ? 'disabled' : '' }}><i class="bi bi-clock"></i> Pending</button></form></div></td>
+                    <td><div class="clearance-actions"><button type="button" class="clearance-action secondary" data-clearance-form-open data-clearance-form-src="{{ route('registrar.clearance.form', [$request->student_id, 'embed' => 1]) }}" data-clearance-form-title="Official Clearance Form" data-clearance-form-subtitle="{{ $request->firstname }} {{ $request->lastname }} · {{ $request->student_id }}"><i class="bi bi-eye"></i> Form</button><form method="POST" action="{{ route('registrar.student-clearance.status') }}">@csrf<input type="hidden" name="student_id" value="{{ $request->student_id }}"><button name="status" value="Approved" class="clearance-action approve" {{ $request->status === 'Approved' ? 'disabled' : '' }}><i class="bi bi-check-lg"></i> Approve</button></form><form method="POST" action="{{ route('registrar.student-clearance.status') }}">@csrf<input type="hidden" name="student_id" value="{{ $request->student_id }}"><button name="status" value="Pending" class="clearance-action pending" {{ $request->status !== 'Approved' ? 'disabled' : '' }}><i class="bi bi-clock"></i> Pending</button></form></div></td>
                 </tr>
             @empty
                 <tr><td colspan="9" class="clearance-empty">No clearance requests found.</td></tr>
@@ -47,4 +47,6 @@
         <div class="clearance-pagination"><span>Showing {{ $clearanceRequests->firstItem() ?? 0 }}–{{ $clearanceRequests->lastItem() ?? 0 }} of {{ $clearanceRequests->total() }} records</span>{{ $clearanceRequests->links() }}</div>
     </section>
 </div>
+
+<x-portal.document-viewer subtitle="Select a student to view their clearance" />
 @endsection

@@ -78,12 +78,16 @@ final class ChatDirectory
                 'role' => 'student',
                 'id' => (string) $student->student_id,
                 'name' => trim("{$student->firstname} {$student->lastname}") ?: $student->student_id,
-                'title' => $student->student_id,
+                // Under the name, staff want the class the student is in — the
+                // ID stays as a chip and is still searchable.
+                'title' => trim(implode(' · ', array_filter([
+                    $student->year_level ? 'Year '.$student->year_level : null,
+                    $student->section ? 'Section '.$student->section : null,
+                ]))) ?: (string) $student->student_id,
                 'group' => 'Students',
                 'meta' => array_values(array_filter([
                     $student->program,
-                    $student->year_level ? 'Year '.$student->year_level : null,
-                    $student->section ? 'Section '.$student->section : null,
+                    $student->student_id,
                 ])),
                 'program' => (string) $student->program,
                 'year_level' => (string) $student->year_level,
@@ -167,6 +171,9 @@ final class ChatDirectory
             default => null,
         };
 
+        // Resolved once for the whole list rather than per instructor.
+        $subjectsTaught = $role === 'instructor' ? $this->subjectsTaughtTo($student) : [];
+
         return $query->get()
             ->filter(fn ($account) => $this->permits($student, $role, $account))
             ->map(fn ($account) => (object) [
@@ -174,12 +181,67 @@ final class ChatDirectory
                 'id' => (string) $account->{$portal['key']},
                 'name' => trim(($account->firstname ?? '').' '.($account->lastname ?? ''))
                     ?: trim((string) ($account->name ?? '')) ?: (string) $account->{$portal['key']},
-                'title' => $this->staffTitle($role, $account),
+                // An instructor is identified by what they teach this student,
+                // which is what the student needs to know before messaging —
+                // their department says nothing about which subject it is about.
+                'title' => ($subjectsTaught[(string) $account->{$portal['key']}] ?? null)
+                    ?: $this->staffTitle($role, $account),
                 'group' => $this->groupLabel($role),
-                'meta' => [$this->groupLabel($role)],
+                'meta' => array_values(array_filter([
+                    $this->groupLabel($role),
+                    $role === 'instructor' ? trim((string) ($account->department ?? '')) : null,
+                ])),
             ])
             ->sortBy('name')
             ->values();
+    }
+
+    /**
+     * The subjects each instructor handles for this student, keyed by instructor.
+     *
+     * Built from {@see StudentSubjects}, so an irregular student sees the
+     * subjects they actually enrolled in rather than their section's block. One
+     * query for the codes, not one per instructor in the contact list.
+     *
+     * @return array<string, string>
+     */
+    private function subjectsTaughtTo(StudentAccount $student): array
+    {
+        // Deploys never migrate, so the subject table may not exist here; the
+        // contact list falls back to the instructor's department rather than
+        // failing the whole chat page.
+        if (! Schema::hasTable('subject_codes') || ! Schema::hasTable('instructor_assignment')) {
+            return [];
+        }
+
+        $pairs = StudentSubjects::forStudent($student);
+
+        if ($pairs->isEmpty()) {
+            return [];
+        }
+
+        // The description is what a student recognises — subject codes here are
+        // often bare numbers ("1234"), which would label nothing useful.
+        $names = DB::table('subject_codes')
+            ->whereIn('subject_id', $pairs->pluck('subject_id')->unique()->all())
+            ->get(['subject_id', 'subject_code', 'subject_description'])
+            ->mapWithKeys(fn ($subject) => [
+                $subject->subject_id => trim((string) $subject->subject_description) ?: trim((string) $subject->subject_code),
+            ]);
+
+        $byInstructor = [];
+        foreach ($pairs as $pair) {
+            $name = $names[$pair->subject_id] ?? null;
+
+            if ($name !== null && $name !== '') {
+                $byInstructor[(string) $pair->instructor_id][] = $name;
+            }
+        }
+
+        return array_map(
+            fn (array $subjects) => implode(' · ', array_unique($subjects)),
+            $byInstructor,
+        );
     }
 
     private function groupLabel(string $role): string
@@ -243,6 +305,12 @@ final class ChatDirectory
         $role = $this->access->officeRole($office);
 
         if ($role === '' || ClearanceWorkflow::normalizeOfficeRole($role) === null) {
+            return false;
+        }
+
+        // The College of Education Department Head reaches only the students
+        // whose clearance they actually sign.
+        if (! ClearanceWorkflow::officeApplies($role, $student)) {
             return false;
         }
 

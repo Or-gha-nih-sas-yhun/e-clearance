@@ -17,8 +17,22 @@ final class ClearanceWorkflow
         'guidance office',
         'library',
         'dean',
+        'education department head',
         'registrar',
     ];
+
+    /**
+     * The only programs that answer to the College of Education Department Head.
+     *
+     * BSED and BEED are two degree programs under one college, each with its own
+     * program head. Their students clear that program head first and then the
+     * department head above them; every other program has no such step, which is
+     * why the office chain is per-student rather than one fixed list.
+     */
+    public const EDUCATION_PROGRAMS = ['BSED', 'BEED'];
+
+    /** Offices that only some students pass through, and who they apply to. */
+    private const CONDITIONAL_ROLES = ['education department head' => self::EDUCATION_PROGRAMS];
 
     public static function normalizeOfficeRole(string $officeRole): ?string
     {
@@ -30,6 +44,8 @@ final class ClearanceWorkflow
             $normalized === 'section' => 'section treasurer',
             (str_contains($normalized, 'department') && str_contains($normalized, 'treasurer')),
             $normalized === 'department' => 'department treasurer',
+            str_contains($normalized, 'education') && (str_contains($normalized, 'department head')
+                || str_contains($normalized, 'dept head')) => 'education department head',
             str_contains($normalized, 'dean'), str_contains($normalized, 'program head'),
             str_contains($normalized, 'department head') => 'dean',
             str_contains($normalized, 'registrar') => 'registrar',
@@ -52,19 +68,92 @@ final class ClearanceWorkflow
         return StudentSubjects::covers($student, $subjectId, $instructorId);
     }
 
+    /** Whether this office is part of the given student's clearance at all. */
+    public static function officeApplies(string $officeRole, ?object $student): bool
+    {
+        $officeRole = self::normalizeOfficeRole($officeRole) ?? '';
+
+        if ($officeRole === '') {
+            return false;
+        }
+
+        $programs = self::CONDITIONAL_ROLES[$officeRole] ?? null;
+
+        if ($programs === null) {
+            return true;
+        }
+
+        $program = strtoupper(trim((string) ($student->program ?? '')));
+
+        return in_array($program, $programs, true);
+    }
+
+    /**
+     * The offices this student must clear, in order, each with what it waits on.
+     *
+     * This is the one description of the chain. The student's clearance page,
+     * the printed form and {@see prerequisitesMet()} all read it, so a new
+     * office cannot appear in one of them and be missing from another — which
+     * is exactly how a student could be shown a step the server would refuse.
+     *
+     * @return list<array{key: string, label: string, requires: list<string>}>
+     */
+    public static function officeChainFor(?object $student): array
+    {
+        $labels = [
+            'section treasurer' => 'Section Treasurer',
+            'department treasurer' => 'Department Treasurer',
+            'property custodian' => 'Property Custodian',
+            'scc adviser' => 'SCC Adviser',
+            'sas director' => 'SAS Director',
+            'guidance office' => 'Guidance Office',
+            'library' => 'Library',
+            'dean' => 'Program Head',
+            'education department head' => 'College of Education Department Head',
+            'registrar' => 'Registrar',
+        ];
+
+        $chain = [];
+        $earlier = [];
+
+        foreach (self::OFFICE_ROLES as $role) {
+            if (! self::officeApplies($role, $student)) {
+                continue;
+            }
+
+            $chain[] = [
+                'key' => $role,
+                'label' => $labels[$role],
+                'requires' => match ($role) {
+                    'department treasurer' => ['section treasurer'],
+                    'dean' => ['section treasurer', 'department treasurer'],
+                    // The department head signs only after the student's own
+                    // program head has, which is the rule that makes BSED and
+                    // BEED pass through two heads rather than one.
+                    'education department head' => ['dean'],
+                    // Everything before it, so an office added to the chain is
+                    // required by the registrar without a second list to edit.
+                    'registrar' => $earlier,
+                    default => [],
+                },
+            ];
+
+            $earlier[] = $role;
+        }
+
+        return $chain;
+    }
+
     public static function prerequisitesMet(StudentAccount $student, string $officeRole): bool
     {
         $officeRole = self::normalizeOfficeRole($officeRole) ?? '';
 
-        $requiredOffices = match ($officeRole) {
-            'department treasurer' => ['section treasurer'],
-            'dean' => ['section treasurer', 'department treasurer'],
-            'registrar' => [
-                'section treasurer', 'department treasurer', 'property custodian', 'scc adviser',
-                'sas director', 'guidance office', 'library', 'dean',
-            ],
-            default => [],
-        };
+        if (! self::officeApplies($officeRole, $student)) {
+            return false;
+        }
+
+        $requiredOffices = collect(self::officeChainFor($student))
+            ->firstWhere('key', $officeRole)['requires'] ?? [];
 
         if ($requiredOffices !== []) {
             $approved = DB::table('office_clearance_status')

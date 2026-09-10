@@ -25,13 +25,10 @@ class DashboardController extends Controller
         // instructor portal; office clearances also contain treasury, registrar,
         // and the remaining institutional offices. The overall clearance_request
         // row is intentionally excluded here to avoid counting one workflow twice.
-        $subjectClearances = DB::table('clearance_status');
-        $officeClearances = DB::table('office_clearance_status');
-
-        $pending = (clone $subjectClearances)->where('status', '<>', 'Approved')->count()
-            + (clone $officeClearances)->where('status', '<>', 'Approved')->count();
-        $approved = (clone $subjectClearances)->where('status', 'Approved')->count()
-            + (clone $officeClearances)->where('status', 'Approved')->count();
+        $pending = $this->clearanceCheckpoints('clearance_status')->where('c.status', '<>', 'Approved')->count()
+            + $this->clearanceCheckpoints('office_clearance_status')->where('c.status', '<>', 'Approved')->count();
+        $approved = $this->clearanceCheckpoints('clearance_status')->where('c.status', 'Approved')->count()
+            + $this->clearanceCheckpoints('office_clearance_status')->where('c.status', 'Approved')->count();
         $cleared = 0;
         $rejected = 0;
 
@@ -43,8 +40,8 @@ class DashboardController extends Controller
 
             return [
                 'label' => $month->format('M Y'),
-                'count' => DB::table('clearance_status')->whereBetween('updated_at', [$start, $end])->count()
-                    + DB::table('office_clearance_status')->whereBetween('updated_at', [$start, $end])->count(),
+                'count' => $this->clearanceCheckpoints('clearance_status')->whereBetween('c.updated_at', [$start, $end])->count()
+                    + $this->clearanceCheckpoints('office_clearance_status')->whereBetween('c.updated_at', [$start, $end])->count(),
             ];
         });
 
@@ -56,14 +53,14 @@ class DashboardController extends Controller
 
             return [
                 'label' => $month->format('M'),
-                'pending' => DB::table('clearance_status')
-                    ->whereBetween('updated_at', [$start, $end])->where('status', '<>', 'Approved')->count()
-                    + DB::table('office_clearance_status')
-                        ->whereBetween('updated_at', [$start, $end])->where('status', '<>', 'Approved')->count(),
-                'approved' => DB::table('clearance_status')
-                    ->whereBetween('updated_at', [$start, $end])->where('status', 'Approved')->count()
-                    + DB::table('office_clearance_status')
-                        ->whereBetween('updated_at', [$start, $end])->where('status', 'Approved')->count(),
+                'pending' => $this->clearanceCheckpoints('clearance_status')
+                    ->whereBetween('c.updated_at', [$start, $end])->where('c.status', '<>', 'Approved')->count()
+                    + $this->clearanceCheckpoints('office_clearance_status')
+                        ->whereBetween('c.updated_at', [$start, $end])->where('c.status', '<>', 'Approved')->count(),
+                'approved' => $this->clearanceCheckpoints('clearance_status')
+                    ->whereBetween('c.updated_at', [$start, $end])->where('c.status', 'Approved')->count()
+                    + $this->clearanceCheckpoints('office_clearance_status')
+                        ->whereBetween('c.updated_at', [$start, $end])->where('c.status', 'Approved')->count(),
                 'cleared' => 0,
                 'rejected' => 0,
             ];
@@ -144,5 +141,21 @@ class DashboardController extends Controller
             'monthlyData', 'stackData', 'statusByProgram', 'byYear',
             'bySubjectProg', 'notifRead', 'notifUnread', 'approverMap', 'instrAssign'
         ));
+    }
+
+    /**
+     * Clearance rows that still belong to a student who exists.
+     *
+     * Every table is MyISAM, so the `ON DELETE CASCADE` the migrations declare
+     * has never once fired — deleting a student can leave their clearance rows
+     * behind. Counting those made the dashboard tiles disagree with the
+     * by-program chart directly beneath them (22 approved against 11), because
+     * only the chart joined `student_account`. Joining here means a leftover row
+     * can never inflate a total again, however it came to exist.
+     */
+    private function clearanceCheckpoints(string $table)
+    {
+        return DB::table($table.' as c')
+            ->join('student_account as sa', 'sa.student_id', '=', 'c.student_id');
     }
 }

@@ -29,8 +29,6 @@ Route::middleware(['instructor.auth', 'no.history'])->prefix('instructor')->name
     Route::get('clearance', [DashboardController::class, 'clearance'])->name('clearance');
     Route::post('remarks', [DashboardController::class, 'sendRemark'])->name('remarks.send');
     Route::delete('submissions/{submission}', [DashboardController::class, 'deleteSubmission'])->name('submissions.delete');
-    Route::get('notifications', [DashboardController::class, 'notifications'])->name('notifications');
-    Route::post('notifications/read-all', [DashboardController::class, 'markNotificationsRead'])->name('notifications.read');
     Route::put('account', [DashboardController::class, 'updateAccount'])->name('account.update');
 
     Route::post('clearance/approve', [ClearanceController::class, 'approve'])->name('clearance.approve');

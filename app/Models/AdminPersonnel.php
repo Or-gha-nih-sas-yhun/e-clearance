@@ -48,6 +48,7 @@ class AdminPersonnel extends Authenticatable
         'program_head_beed' => 'Program Head — BEED',
         'program_head_bsba' => 'Program Head — BSBA',
         'program_head_bshm' => 'Program Head — BSHM',
+        'education_department_head' => 'College of Education Department Head',
         'property_custodian' => 'Property Custodian',
         'scc_adviser' => 'SCC Adviser',
         'sas_director' => 'SAS Director',

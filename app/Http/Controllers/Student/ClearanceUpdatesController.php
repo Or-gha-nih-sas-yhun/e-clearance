@@ -213,40 +213,44 @@ class ClearanceUpdatesController extends Controller
     {
         $message = "New clearance request from {$student->full_name} for ".ucwords($officeRole).'.';
         $link = route('office.clearance.requests');
-        $recipientId = null;
+        $recipientIds = collect();
         $recipientRole = 'office';
 
+        // Every holder of the office is notified, not just the first row found.
+        // An office with two staff used to leave one of them permanently in the
+        // dark: the request was waiting for them, but nothing ever told them.
         if ($officeRole === 'registrar') {
             $recipientRole = 'registrar';
-            $recipientId = Schema::hasTable('registrar')
-                ? DB::table('registrar')->orderBy('id')->value('registrar_id')
-                : null;
+            $recipientIds = Schema::hasTable('registrar')
+                ? DB::table('registrar')->orderBy('id')->pluck('registrar_id')
+                : collect();
             $link = route('registrar.student-clearance');
         } elseif ($officeRole === 'section treasurer') {
             $recipientRole = 'treasurer';
-            $recipientId = Schema::hasTable('treasurers') ? DB::table('treasurers')->where('treasurer_type', 'section')
+            $recipientIds = Schema::hasTable('treasurers') ? DB::table('treasurers')->where('treasurer_type', 'section')
                 ->where('program', $student->program)->where('year_level', $student->year_level)
                 ->whereRaw(SectionKey::sql('section').' = '.SectionKey::sql('?'), [$student->section])
-                ->orderBy('id')->value('treasurer_id') : null;
+                ->orderBy('id')->pluck('treasurer_id') : collect();
             $link = route('treasurer.dashboard');
         } elseif ($officeRole === 'department treasurer') {
             $recipientRole = 'treasurer';
-            $recipientId = Schema::hasTable('treasurers') ? DB::table('treasurers')->where('treasurer_type', 'department')
-                ->where('department', $student->program)->orderBy('id')->value('treasurer_id') : null;
+            $recipientIds = Schema::hasTable('treasurers') ? DB::table('treasurers')->where('treasurer_type', 'department')
+                ->where('department', $student->program)->orderBy('id')->pluck('treasurer_id') : collect();
             $link = route('treasurer.dashboard');
         } else {
             $roleMap = [
                 'property custodian' => 'property_custodian', 'scc adviser' => 'scc_adviser',
                 'sas director' => 'sas_director', 'guidance office' => 'guidance', 'library' => 'library',
                 'dean' => 'program_head_'.strtolower($student->program),
+                'education department head' => 'education_department_head',
             ];
             if (isset($roleMap[$officeRole]) && Schema::hasTable('admin_personnel')) {
-                $recipientId = DB::table('admin_personnel')->where('role', $roleMap[$officeRole])
-                    ->orderBy('id')->value('personnel_id');
+                $recipientIds = DB::table('admin_personnel')->where('role', $roleMap[$officeRole])
+                    ->orderBy('id')->pluck('personnel_id');
             }
         }
 
-        if ($recipientId) {
+        foreach ($recipientIds->filter()->unique() as $recipientId) {
             Notification::create([
                 'user_id' => $recipientId,
                 'recipient_role' => $recipientRole,
@@ -290,6 +294,7 @@ class ClearanceUpdatesController extends Controller
                 'guidance office' => 'guidance',
                 'library' => 'library',
                 'dean' => 'program_head_'.strtolower($student->program),
+                'education department head' => 'education_department_head',
             ];
             $query = DB::table('admin_personnel');
             $account = $approverId ? (clone $query)->where('personnel_id', $approverId)->first() : null;
@@ -414,17 +419,10 @@ class ClearanceUpdatesController extends Controller
 
         $allInstructorApproved = count($instructorItems) > 0 && count(array_filter($instructorItems, fn ($item) => $item['is_approved'])) === count($instructorItems);
 
-        $officeRoles = [
-            ['key' => 'section treasurer', 'label' => 'Section Treasurer', 'requires' => []],
-            ['key' => 'department treasurer', 'label' => 'Department Treasurer', 'requires' => ['section treasurer']],
-            ['key' => 'property custodian', 'label' => 'Property Custodian', 'requires' => []],
-            ['key' => 'scc adviser', 'label' => 'SCC Adviser', 'requires' => []],
-            ['key' => 'sas director', 'label' => 'SAS Director', 'requires' => []],
-            ['key' => 'guidance office', 'label' => 'Guidance Office', 'requires' => []],
-            ['key' => 'library', 'label' => 'Library', 'requires' => []],
-            ['key' => 'dean', 'label' => 'Dean', 'requires' => ['section treasurer', 'department treasurer']],
-            ['key' => 'registrar', 'label' => 'Registrar', 'requires' => ['section treasurer', 'department treasurer', 'property custodian', 'scc adviser', 'sas director', 'guidance office', 'library', 'dean']],
-        ];
+        // One description of the chain, shared with the printed form and the
+        // server-side gate, so this page can never offer a step the server
+        // would refuse — or hide one it requires.
+        $officeRoles = ClearanceWorkflow::officeChainFor($student);
 
         foreach ($officeRoles as $role) {
             $status = $officeStatusMap[$role['key']] ?? null;

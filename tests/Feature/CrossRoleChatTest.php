@@ -26,7 +26,7 @@ class CrossRoleChatTest extends TestCase
         parent::setUp();
 
         foreach ([
-            'chat_messages', 'notifications', 'irregular_enrollment', 'instructor_assignment',
+            'chat_messages', 'notifications', 'irregular_enrollment', 'instructor_assignment', 'subject_codes',
             'treasurers', 'registrar', 'admin_personnel', 'instructor_account', 'student_account',
         ] as $table) {
             Schema::dropIfExists($table);
@@ -44,6 +44,14 @@ class CrossRoleChatTest extends TestCase
             $table->string('program');
             $table->string('year_level');
             $table->string('section');
+        });
+        Schema::create('subject_codes', function (Blueprint $table) {
+            $table->bigIncrements('subject_id');
+            $table->string('subject_code');
+            $table->string('subject_description')->nullable();
+            $table->string('year_level')->nullable();
+            $table->string('program')->nullable();
+            $table->string('semester')->nullable();
         });
         Schema::create('instructor_account', function (Blueprint $table) {
             $table->id();
@@ -371,6 +379,35 @@ class CrossRoleChatTest extends TestCase
         $this->assertSame(['2023-0001'], $contacts->pluck('id')->all());
     }
 
+    public function test_an_instructor_is_labelled_by_the_subjects_they_teach_this_student(): void
+    {
+        $student = $this->student();
+        $instructor = $this->instructorTeaching('BSIT', '3', 'A');
+
+        $contacts = app(\App\Support\ChatDirectory::class)->staffContactsFor($student, 'instructor');
+        $contact = $contacts->firstWhere('id', (string) $instructor->instructor_id);
+
+        $this->assertNotNull($contact, 'The teaching instructor must be reachable.');
+        $this->assertSame(
+            'Intro to Computing',
+            $contact->title,
+            'The label under an instructor name is the subject they handle, not their department.',
+        );
+    }
+
+    public function test_a_student_is_labelled_by_year_level_and_section(): void
+    {
+        $student = $this->student();
+        $instructor = $this->instructorTeaching('BSIT', '3', 'A');
+
+        $contacts = app(\App\Support\ChatDirectory::class)->studentContactsFor('instructor', $instructor);
+        $contact = $contacts->firstWhere('id', (string) $student->student_id);
+
+        $this->assertNotNull($contact);
+        $this->assertSame('Year 3 · Section A', $contact->title);
+        $this->assertContains((string) $student->student_id, $contact->meta, 'The ID stays visible as a chip.');
+    }
+
     private function student(array $overrides = []): StudentAccount
     {
         return StudentAccount::create(array_merge([
@@ -432,6 +469,12 @@ class CrossRoleChatTest extends TestCase
             'password' => 'secret',
             'department' => 'Computer Studies',
         ]);
+
+        DB::table('subject_codes')->updateOrInsert(
+            ['subject_id' => 1],
+            ['subject_code' => 'IT101', 'subject_description' => 'Intro to Computing',
+             'year_level' => $year, 'program' => $program, 'semester' => '1st Semester'],
+        );
 
         DB::table('instructor_assignment')->insert([
             'instructor_id' => $id,
