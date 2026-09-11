@@ -18,6 +18,8 @@
     <form method="POST" action="{{ route('registrar.logout') }}">@csrf<button type="submit" class="sidebar-action"><i class="bi bi-box-arrow-right me-2"></i> Log Out</button></form>
 @endsection
 
+@push('styles')<link href="{{ asset('css/clearance_document_viewer.css') }}" rel="stylesheet">@endpush
+
 @section('content')
     <div class="card card-stat mx-auto" style="max-width:720px;">
         <div class="card-body p-4 text-center">
@@ -32,6 +34,17 @@
             <p id="scannerStatus" class="small text-secondary mt-3 mb-0">Starting camera…</p>
         </div>
     </div>
+
+    {{-- The scanned record opens in the same viewer the Student Clearance table
+         uses, so the registrar stays on the scanner and can read the result,
+         close it, and scan the next student without leaving the page. --}}
+    <button type="button" class="d-none" id="scanResultTrigger"
+            data-clearance-form-open
+            data-clearance-form-src=""
+            data-clearance-form-title="Clearance verification"
+            data-clearance-form-subtitle="Scanned QR code"></button>
+
+    <x-portal.document-viewer id="scanResultViewer" title="Clearance verification" subtitle="Scanned QR code" />
 @endsection
 
 @push('scripts')
@@ -53,8 +66,16 @@ function openScannedClearance(value) {
         document.getElementById('scannerStatus').textContent = 'This is not a valid ClearanceMS verification QR code.';
         return;
     }
+    // Shown in place rather than navigated to: leaving the portal to read one
+    // result meant coming back and restarting the camera for the next student.
     scannerControls?.stop();
-    window.location.assign(url.href);
+    url.searchParams.set('embed', '1');
+
+    const trigger = document.getElementById('scanResultTrigger');
+    trigger.dataset.clearanceFormSrc = url.href;
+    trigger.click();
+
+    document.getElementById('scannerStatus').textContent = 'Record shown. Close it to scan another QR code.';
 }
 
 async function scanQrImage(file) {
@@ -94,6 +115,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.ZXingBrowser) qrReader = new ZXingBrowser.BrowserQRCodeReader();
     startScanner();
     document.getElementById('qrImageInput').addEventListener('change', event => scanQrImage(event.target.files[0]));
+
+    // Closing the result hands the camera back, ready for the next student.
+    document.getElementById('scanResultViewer')?.addEventListener('click', event => {
+        if (event.target.closest('[data-clearance-form-close]')) {
+            window.setTimeout(startScanner, 150);
+        }
+    });
 });
 window.addEventListener('beforeunload', () => scannerControls?.stop());
 </script>

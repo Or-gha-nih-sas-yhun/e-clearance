@@ -550,10 +550,6 @@ async function toggleNotifications() {
     panel.classList.add('open');
     overlay.classList.add('show');
     await loadNotifications(true);
-
-    @if(Auth::guard('student')->check())
-        await markAllNotificationsRead();
-    @endif
 }
 function getCsrfToken() {
     return document.querySelector('meta[name="csrf-token"]')?.content || '';

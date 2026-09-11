@@ -1,3 +1,10 @@
+@php
+    // Scanned on a phone this is a page of its own, presented as a modal. The
+    // registrar's scanner loads the same URL with ?embed=1 inside the portal's
+    // document viewer, which brings its own backdrop and close button — so the
+    // embedded copy renders the card alone.
+    $embedded = request()->boolean('embed');
+@endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -33,13 +40,22 @@
         .note { color: #607086; line-height: 1.55; }
         @media (max-width: 480px) { .verify-modal { padding: 1.5rem 1.25rem; } dl { grid-template-columns: 1fr; gap: .25rem; } dd { margin-bottom: .65rem; } }
         @media (prefers-reduced-motion: reduce) { .verify-modal { animation: none; } }
+
+        /* Embedded: the host modal owns the backdrop, the framing and the close
+           button, so only the card itself is drawn. */
+        body.is-embedded { background: #fff; }
+        body.is-embedded .verify-overlay { position: static; display: block; padding: 0; background: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+        body.is-embedded .verify-modal { width: auto; max-height: none; border: 0; border-radius: 0; box-shadow: none; animation: none; }
+        body.is-embedded h1 { padding-right: 0; }
     </style>
 </head>
-<body>
-@include('partials.app-shell-body')
+<body class="{{ $embedded ? 'is-embedded' : '' }}">
+@unless($embedded)@include('partials.app-shell-body')@endunless
 <div class="verify-overlay">
     <main class="verify-modal" role="dialog" aria-modal="true" aria-labelledby="verifyTitle">
+        @unless($embedded)
         <button class="verify-close" type="button" data-verify-close aria-label="Close verification"><i class="bi bi-x-lg"></i></button>
+        @endunless
 
         <p class="school">Madridejos Community College</p>
         <h1 id="verifyTitle">Clearance verification</h1>
@@ -54,6 +70,7 @@
     </main>
 </div>
 
+@unless($embedded)
 <script>
 (() => {
     // Closing a page opened by a QR scanner has nowhere to go back to.
@@ -72,5 +89,6 @@
     document.addEventListener('keydown', event => { if (event.key === 'Escape') { close(); } });
 })();
 </script>
+@endunless
 </body>
 </html>
