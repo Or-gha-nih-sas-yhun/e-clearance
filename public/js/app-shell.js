@@ -21,13 +21,24 @@
         splash?.classList.add('is-done');
     }
 
-    /** Bring the splash back while the browser fetches the next page. */
+    let navigationTimer = null;
+
+    /**
+     * Bring the splash back while the browser fetches the next page.
+     *
+     * A page that never navigates -- a form the page handles itself, a click a
+     * script cancels -- would otherwise leave the screen covered for good, so
+     * the splash takes itself away again if nothing has happened shortly after.
+     */
     function showSplashFor(message) {
         if (!splash) { return; }
 
         const note = splash.querySelector('[data-app-splash-note]');
         if (note && message) { note.textContent = message; }
         splash.classList.remove('is-done');
+
+        window.clearTimeout(navigationTimer);
+        navigationTimer = window.setTimeout(hideSplash, 2500);
     }
 
     if (splash) {
@@ -152,6 +163,9 @@
         if (!link || link.target === '_blank' || link.hasAttribute('download')) { return; }
         if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) { return; }
 
+        // Something else already cancelled this click, so nothing will load.
+        if (event.defaultPrevented || link.closest('[data-no-splash]')) { return; }
+
         const href = link.getAttribute('href') || '';
         // In-page anchors and script hrefs do not navigate.
         if (href === '' || href.startsWith('#') || href.toLowerCase().startsWith('javascript:')) { return; }
@@ -165,8 +179,15 @@
 
     document.addEventListener('submit', event => {
         const form = event.target;
-        if (form instanceof HTMLFormElement && form.method.toLowerCase() !== 'dialog') {
-            showSplashFor('Working…');
-        }
+
+        if (!(form instanceof HTMLFormElement) || form.method.toLowerCase() === 'dialog') { return; }
+
+        // The form's own listener runs before this one, so a handler that calls
+        // preventDefault() -- the chat composer, every in-page AJAX form -- has
+        // already marked the event by now. Those never navigate, so covering the
+        // screen would strand the page.
+        if (event.defaultPrevented || form.closest('[data-no-splash]')) { return; }
+
+        showSplashFor('Working…');
     });
 })();

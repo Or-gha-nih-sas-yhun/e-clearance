@@ -25,7 +25,9 @@
     $contacts = collect($contacts);
     $filters = collect($filters)->filter(fn ($filter) => ! empty($filter['options']));
 @endphp
-<div class="portal-messenger" id="{{ $id }}" data-messenger data-messages-url="{{ $messagesUrl }}" data-send-url="{{ $sendUrl }}">
+{{-- data-no-splash: a messenger sends and polls in place, so the loading
+     splash has nothing to cover and would only get in the way. --}}
+<div class="portal-messenger" id="{{ $id }}" data-messenger data-no-splash data-messages-url="{{ $messagesUrl }}" data-send-url="{{ $sendUrl }}">
     <aside class="messenger-sidebar">
         <div class="messenger-sidebar-head">
             <div class="messenger-sidebar-title"><h3>{{ $heading }}</h3><span>{{ $contacts->count() }}</span></div>
