@@ -68,18 +68,35 @@
     let tracking = false;
     let scroller = null;
 
-    /** The element that actually scrolls under this touch. */
+    /**
+     * The element that actually scrolls under this touch, or null when the
+     * gesture belongs to something floating.
+     *
+     * Anything `position: fixed` — the notification panel, the account panel,
+     * a modal, the messenger — is its own surface sitting over the page. A drag
+     * inside one of those is the user scrolling that panel, so refreshing there
+     * would throw away whatever they opened. Hitting a fixed ancestor before a
+     * scroller therefore disarms the gesture entirely.
+     */
     function scrollerFor(target) {
-        let node = target instanceof Element ? target : null;
+        const start = target instanceof Element ? target : null;
 
-        while (node && node !== document.body) {
+        // Checked across the whole chain before looking for a scroller: a
+        // panel's own scrollable list sits *below* the panel in the tree, so
+        // stopping at the first scroller would arm inside it and refresh the
+        // page out from under whatever the user had opened.
+        for (let node = start; node && node !== document.body; node = node.parentElement) {
+            if (window.getComputedStyle(node).position === 'fixed') {
+                return null;
+            }
+        }
+
+        for (let node = start; node && node !== document.body; node = node.parentElement) {
             const style = window.getComputedStyle(node);
-            const scrolls = /(auto|scroll|overlay)/.test(style.overflowY);
 
-            if (scrolls && node.scrollHeight > node.clientHeight) {
+            if (/(auto|scroll|overlay)/.test(style.overflowY) && node.scrollHeight > node.clientHeight) {
                 return node;
             }
-            node = node.parentElement;
         }
 
         // The portals set `body { overflow: hidden }` and scroll `.main`, so
@@ -107,8 +124,9 @@
             if (event.touches.length !== 1) { return; }
 
             scroller = scrollerFor(event.target);
-            // Only from a resting position at the very top.
-            if (scroller.scrollTop > 0) { tracking = false; return; }
+            // Null means the touch began inside a floating panel; only a real
+            // scroller resting at the very top arms the gesture.
+            if (!scroller || scroller.scrollTop > 0) { tracking = false; return; }
 
             startY = event.touches[0].clientY;
             distance = 0;
