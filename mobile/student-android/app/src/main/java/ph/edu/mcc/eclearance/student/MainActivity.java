@@ -52,6 +52,8 @@ public final class MainActivity extends Activity {
     private WebView webView;
     private ProgressBar pageProgress;
     private LinearLayout errorPanel;
+    private LinearLayout splashPanel;
+    private boolean splashDismissed;
     private ValueCallback<Uri[]> fileChooserCallback;
     private PendingDownload pendingDownload;
     private OnBackInvokedCallback backInvokedCallback;
@@ -99,6 +101,9 @@ public final class MainActivity extends Activity {
 
         webView = new WebView(this);
         webView.setBackgroundColor(getColor(R.color.mcc_surface));
+        // The portal implements pull-to-refresh itself, so the WebView's own
+        // stretch/glow is turned off rather than fighting the gesture.
+        webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         content.addView(webView, new FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT
@@ -111,7 +116,64 @@ public final class MainActivity extends Activity {
             ViewGroup.LayoutParams.MATCH_PARENT
         ));
 
+        // Added last so it sits above the WebView, covering the blank frame
+        // between the app opening and the portal's first paint.
+        splashPanel = createSplashPanel();
+        content.addView(splashPanel, new FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        ));
+
         return screen;
+    }
+
+    private LinearLayout createSplashPanel() {
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setGravity(android.view.Gravity.CENTER);
+        panel.setBackgroundColor(getColor(R.color.mcc_surface));
+        // Swallows taps so nothing behind it can be pressed while it shows.
+        panel.setClickable(true);
+
+        ImageView logo = new ImageView(this);
+        logo.setImageResource(R.drawable.mcc_eclearance_logo);
+        logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        panel.addView(logo, new LinearLayout.LayoutParams(dp(148), dp(148)));
+
+        TextView name = new TextView(this);
+        name.setText(R.string.app_name);
+        name.setTextColor(getColor(R.color.mcc_navy));
+        name.setTextSize(17f);
+        name.setTypeface(name.getTypeface(), android.graphics.Typeface.BOLD);
+        name.setGravity(android.view.Gravity.CENTER);
+        LinearLayout.LayoutParams nameParams = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        nameParams.topMargin = dp(18);
+        panel.addView(name, nameParams);
+
+        ProgressBar spinner = new ProgressBar(this);
+        spinner.setIndeterminateTintList(
+            android.content.res.ColorStateList.valueOf(getColor(R.color.mcc_blue)));
+        LinearLayout.LayoutParams spinnerParams = new LinearLayout.LayoutParams(dp(30), dp(30));
+        spinnerParams.topMargin = dp(22);
+        panel.addView(spinner, spinnerParams);
+
+        return panel;
+    }
+
+    /**
+     * Takes the splash away once the portal has something to show. Only the
+     * first load is covered; later navigations use the thin progress bar, so
+     * the screen is never hidden again mid-session.
+     */
+    private void dismissSplash() {
+        if (splashDismissed || splashPanel == null) {
+            return;
+        }
+        splashDismissed = true;
+        splashPanel.animate().alpha(0f).setDuration(260L)
+            .withEndAction(() -> splashPanel.setVisibility(View.GONE))
+            .start();
     }
 
     private LinearLayout createErrorPanel() {
@@ -270,6 +332,7 @@ public final class MainActivity extends Activity {
     }
 
     private void showError() {
+        dismissSplash();
         mainFrameFailed = true;
         pageProgress.setVisibility(View.GONE);
         errorPanel.setVisibility(View.VISIBLE);
@@ -411,6 +474,7 @@ public final class MainActivity extends Activity {
             if (!mainFrameFailed) {
                 errorPanel.setVisibility(View.GONE);
             }
+            dismissSplash();
         }
 
         @Override

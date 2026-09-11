@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow,noarchive">
     <title>Clearance Verification | MCC</title>
+    @include('partials.favicon')
+    @include('partials.app-shell')
     <style>
         :root { color-scheme: light; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
         body { min-height: 100vh; margin: 0; display: grid; place-items: center; background: #eef5fb; color: #172033; }
@@ -17,6 +19,7 @@
     </style>
 </head>
 <body>
+@include('partials.app-shell-body')
 <main>
     <p>Mayor Carlos P. Garcia College</p>
     <h1>Clearance verification</h1>

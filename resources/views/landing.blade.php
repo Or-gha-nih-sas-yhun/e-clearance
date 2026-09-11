@@ -6,6 +6,8 @@
     <meta name="theme-color" content="#e7f5ff">
     <meta name="description" content="MCC e-Clearance System portal directory for students, instructors, offices, treasury, registrar, and administrators.">
     <title>MCC e-Clearance System</title>
+    @include('partials.favicon')
+    @include('partials.app-shell')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -13,6 +15,7 @@
     <link href="{{ asset('css/landing.css') }}" rel="stylesheet">
 </head>
 <body>
+@include('partials.app-shell-body')
     <div class="landing-orb orb-one" aria-hidden="true"></div>
     <div class="landing-orb orb-two" aria-hidden="true"></div>
     <div class="landing-grid" aria-hidden="true"></div>

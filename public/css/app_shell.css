@@ -1,0 +1,59 @@
+/* Loading splash and pull-to-refresh, shared by every portal.
+
+   Both are plain CSS and JS on the website, which means the Android app gets
+   them too: it is a WebView over these same pages. */
+
+/* ---------- Loading splash ---------- */
+.app-splash {
+    position: fixed;
+    inset: 0;
+    z-index: 99000;
+    display: grid;
+    place-items: center;
+    gap: 18px;
+    background: linear-gradient(160deg, #f7fbff, #e8f2fc);
+    transition: opacity .32s ease, visibility .32s ease;
+}
+
+.app-splash.is-done { opacity: 0; visibility: hidden; pointer-events: none; }
+
+.app-splash-inner { display: grid; justify-items: center; gap: 16px; text-align: center; padding: 24px; }
+.app-splash-logo { width: 108px; height: 108px; border-radius: 50%; animation: appSplashPulse 1.8s ease-in-out infinite; }
+.app-splash-name { color: #0d2a5c; font: 800 1.02rem/1.2 'Syne', 'Mulish', system-ui, sans-serif; letter-spacing: .01em; }
+.app-splash-note { margin-top: -8px; color: #5f7691; font: 600 .76rem/1.4 'Mulish', system-ui, sans-serif; }
+
+.app-splash-bar { width: 152px; height: 4px; overflow: hidden; border-radius: 99px; background: rgba(13, 42, 92, .12); }
+.app-splash-bar span { display: block; width: 40%; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #2f8ce0, #00328c); animation: appSplashSlide 1.15s ease-in-out infinite; }
+
+@keyframes appSplashPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@keyframes appSplashSlide { 0% { transform: translateX(-110%); } 100% { transform: translateX(260%); } }
+
+/* ---------- Pull to refresh ---------- */
+.app-pull {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    z-index: 98000;
+    display: grid;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 6px 18px rgba(15, 45, 75, .2);
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -60px);
+}
+
+.app-pull i { color: #00328c; font-size: 1.05rem; transition: transform .15s ease; }
+.app-pull.is-armed i { transform: rotate(180deg); }
+.app-pull.is-refreshing i { animation: appPullSpin .7s linear infinite; }
+.app-pull.is-settling { transition: transform .22s ease, opacity .22s ease; }
+
+@keyframes appPullSpin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+    .app-splash-logo, .app-splash-bar span, .app-pull.is-refreshing i { animation: none; }
+    .app-splash { transition: none; }
+}

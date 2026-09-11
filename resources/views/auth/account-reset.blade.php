@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reset Password</title>
+    @include('partials.favicon')
+    @include('partials.app-shell')
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -13,6 +15,7 @@
     </style>
 </head>
 <body>
+@include('partials.app-shell-body')
 <main class="card reset-card"><div class="card-body p-4 p-md-5">
     <div class="reset-icon"><i class="bi bi-shield-lock-fill"></i></div>
     <h1 class="h4 text-center mb-2">Create a new password</h1>

@@ -12,6 +12,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Student Clearance Form — {{ $student->student_id }}</title>
+    @include('partials.favicon')
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { margin: 0; background: #e5e7eb; font: 11px 'Times New Roman', serif; color: #111; text-transform: uppercase; }

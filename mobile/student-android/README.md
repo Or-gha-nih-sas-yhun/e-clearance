@@ -26,6 +26,11 @@ The app uses the existing responsive Laravel student portal inside a restricted 
 - File selection for subject and office uploads
 - Authenticated document downloads to the Android Downloads folder
 - Android back-button navigation
+- A splash screen with the e-Clearance badge while the portal's first page
+  loads, dismissed on the first paint or when the connection error appears
+- Pull down from the top of any page to refresh, the same gesture the website
+  offers in a mobile browser (the WebView's own overscroll glow is disabled so
+  the page owns the gesture)
 - Loading and connection-error states
 - Fixed official HTTPS server address
 - First-party redirects stay inside the app; external sites open in the browser

@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Clearance Portal') — ClearanceMS</title>
+    @include('partials.favicon')
+    @include('partials.app-shell')
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Mulish:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -197,6 +199,7 @@
     <link href="{{ asset('css/portal_page_indicator.css') }}" rel="stylesheet">
 </head>
 <body class="student-portal-theme portal-chrome-theme @yield('theme-body-class') {{ request()->routeIs('registrar.*', 'office.*', 'treasurer.*') ? 'campus-glass-theme' : '' }}">
+@include('partials.app-shell-body')
 <div class="overlay" id="overlay" onclick="closeOverlay()"></div>
 @include('partials.action-feedback-modal')
 
