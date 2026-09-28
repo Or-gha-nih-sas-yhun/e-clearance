@@ -104,6 +104,8 @@ class ClearanceFormController extends Controller
                 'maskedStudentId' => $maskedStudentId,
                 'overallStatus' => $summary['overallStatus'],
                 'token' => $verification,
+                'collegeLogo' => $this->letterheadLogo('mcc-logo.png'),
+                'municipalityLogo' => $this->letterheadLogo('madridejos-seal.png'),
             ])
             ->header('Cache-Control', 'private, no-store, max-age=0')
             ->header('X-Robots-Tag', 'noindex, nofollow, noarchive');

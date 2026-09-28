@@ -190,6 +190,8 @@ class SecurityHardeningTest extends TestCase
             ->assertOk()
             ->assertSee('QR Test')
             ->assertSee('1001')
+            ->assertSee('Madridejos Community College logo')
+            ->assertSee('Municipality of Madridejos seal')
             ->assertDontSee($student->student_id)
             ->assertDontSee($student->email)
             ->assertDontSee('CONFIDENTIAL REGISTRAR REMARK')
