@@ -52,7 +52,7 @@
         .auth-panel[hidden]{display:none}.auth-panel.panel-enter{animation:panelEnter .32s cubic-bezier(.22,1,.36,1)}@keyframes panelEnter{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:translateX(0)}}
         .recovery-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:0 0 16px}.recovery-step{height:5px;border-radius:999px;background:#d9e6f4}.recovery-step.active{background:linear-gradient(90deg,#32a9ff,#075bea);box-shadow:0 3px 9px rgba(7,91,234,.18)}
         .recovery-note{margin:-2px 0 15px;color:var(--muted);text-align:center;font-size:.8rem;line-height:1.5}.recovery-note strong{color:#193f70}.code-field input{padding-right:20px;text-align:center;letter-spacing:.42em;font-size:1.3rem;font-weight:800}.code-field>i{display:none}
-        .password-hint{margin:-6px 4px 13px;color:#607795;font-size:.72rem;line-height:1.4}.recovery-footer{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:7px 13px;margin-top:13px}.recovery-footer form{margin:0}.text-action{padding:5px;color:var(--blue);border:0;outline:0;background:transparent;font-size:.8rem;font-weight:700;cursor:pointer}.text-action:hover{text-decoration:underline}.text-action.muted{color:#60748e}
+        .password-hint{margin:-6px 4px 13px;color:#607795;font-size:.72rem;line-height:1.4}.recovery-footer{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:7px 13px;margin-top:13px}.recovery-footer form{margin:0}.text-action{padding:5px;color:var(--blue);border:0;outline:0;background:transparent;font-size:.8rem;font-weight:700;cursor:pointer}.text-action:hover{text-decoration:underline}.text-action.muted{color:#60748e}.register-prompt{margin:12px 0 0;color:#506b8f;text-align:center;font-size:.82rem}.register-prompt .text-action{padding:2px 4px}
         .back-button{display:flex;width:100%;min-height:46px;margin-top:10px;align-items:center;justify-content:center;gap:8px;color:#34506f;border:0;border-radius:14px;background:rgba(230,240,249,.76);font-weight:700;cursor:pointer}.back-button:hover{color:var(--blue);background:#e6f3ff}
         .captcha-box{margin:2px 0 14px;padding:12px;border:1px solid #c9dcef;border-radius:15px;background:rgba(239,247,255,.76)}.captcha-label{display:block;margin:0 0 9px;color:#34506f;font-size:.78rem;font-weight:700}.captcha-row{display:grid;grid-template-columns:190px 42px 1fr;gap:8px;align-items:center}.captcha-image{width:190px;height:64px;border:1px solid #b9cee5;border-radius:11px;background:#eef7ff}.captcha-refresh{display:grid;width:42px;height:42px;padding:0;place-items:center;color:var(--blue);border:1px solid #bdd3ea;border-radius:11px;background:#fff;cursor:pointer}.captcha-answer{width:100%;height:48px;padding:0 12px;text-align:center;text-transform:uppercase;letter-spacing:.16em;border:1px solid #ccdbed;border-radius:11px;outline:none;background:#fff;font-weight:800}.captcha-answer:focus{border-color:#4791ff;box-shadow:0 0 0 4px rgba(7,91,234,.1)}
         .help { margin:19px 0 0; color:var(--muted); text-align:center; font-size:.82rem; }.copyright{margin:13px 0 0;color:#31557f;text-align:center;font-size:.74rem}
@@ -67,17 +67,37 @@
     $firstError = null;
     if (isset($errors) && is_object($errors) && method_exists($errors, 'any') && $errors->any()) $firstError = $errors->first();
     elseif (isset($errors) && is_array($errors) && count($errors)) $firstError = reset($errors);
-    $recoverySessionKey = 'portal_password_recovery_' . str_replace('-', '_', $recoveryPortal);
+    $isStudentPortal = $isStudentPortal ?? false;
+    $recoverySessionKey = $isStudentPortal
+        ? 'student_password_recovery'
+        : 'portal_password_recovery_' . str_replace('-', '_', $recoveryPortal);
     $recoveryState = session($recoverySessionKey, []);
-    $recoveryStep = $recoveryState['stage'] ?? ((old('recovery_action') === 'email' && old('recovery_portal') === $recoveryPortal) ? 'email' : 'login');
+    $recoveryStep = $recoveryStep ?? ($recoveryState['stage'] ?? ((old('recovery_action') === 'email' && ($isStudentPortal || old('recovery_portal') === $recoveryPortal)) ? 'email' : 'login'));
     $activePanel = in_array($recoveryStep, ['email', 'code', 'reset'], true) ? $recoveryStep : 'login';
+    $registrationState = $isStudentPortal ? session('student_registration') : null;
+    if (is_array($registrationState) && ($registrationState['stage'] ?? null) === 'code') $activePanel = 'register-code';
+    elseif ($isStudentPortal && old('registration_action') === 'account') $activePanel = 'register-account';
     $loginGuard = $recoveryPortal === 'main-admin' ? 'admin' : $recoveryPortal;
     // Set once the password is accepted from a browser this account has not verified before.
     $loginChallenge = session("login_challenge_{$loginGuard}");
     if (is_array($loginChallenge)) $activePanel = 'device-otp';
     $otpRoute = $recoveryPortal === 'main-admin' ? 'login.otp' : "{$recoveryPortal}.login.otp";
     $captchaRequired = session("login_security.captcha.{$loginGuard}", false);
-    $recoveryEmail = $recoveryState['email'] ?? old('email', '');
+    $recoveryEmail = $recoveryEmail ?? ($recoveryState['email'] ?? old('email', ''));
+    $recoveryRoutes = $isStudentPortal
+        ? [
+            'send' => route('student.password-recovery.send-code'),
+            'verify' => route('student.password-recovery.verify-code'),
+            'reset' => route('student.password-recovery.reset'),
+            'cancel' => route('student.password-recovery.cancel'),
+        ]
+        : [
+            'send' => route('portal-password-recovery.send-code', $recoveryPortal),
+            'verify' => route('portal-password-recovery.verify-code', $recoveryPortal),
+            'reset' => route('portal-password-recovery.reset', $recoveryPortal),
+            'cancel' => route('portal-password-recovery.cancel', $recoveryPortal),
+        ];
+    $hideLandingLink = $isStudentPortal && str_contains((string) request()->userAgent(), 'MCCStudentAndroid/');
     $emailParts = str_contains($recoveryEmail, '@') ? explode('@', $recoveryEmail, 2) : [];
     $maskedEmail = count($emailParts) === 2 ? substr($emailParts[0], 0, min(2, strlen($emailParts[0]))) . str_repeat('•', max(3, strlen($emailParts[0]) - 2)) . '@' . $emailParts[1] : $recoveryEmail;
     $panelHeadings = [
@@ -85,6 +105,8 @@
         'email' => ['icon' => 'bi-envelope-check', 'title' => 'Recover Password', 'subtitle' => 'Verify the email registered to your account.'],
         'code' => ['icon' => 'bi-shield-check', 'title' => 'Check Your Email', 'subtitle' => 'Enter the six-digit verification code we sent.'],
         'reset' => ['icon' => 'bi-key', 'title' => 'Create New Password', 'subtitle' => 'Choose a strong password for your account.'],
+        'register-account' => ['icon' => 'bi-person-plus', 'title' => 'Register Your Account', 'subtitle' => 'Use the Microsoft account listed by the college.'],
+        'register-code' => ['icon' => 'bi-envelope-check', 'title' => 'Verify Your Account', 'subtitle' => 'Enter the six-digit code sent to your Microsoft account.'],
         'device-otp' => ['icon' => 'bi-envelope-shield', 'title' => 'Verify This Device', 'subtitle' => 'Enter the one-time code sent to your registered email.'],
     ];
     $activeHeading = $panelHeadings[$activePanel];
@@ -101,13 +123,14 @@
             <div class="login-heading"><div class="role-badge"><i id="auth-heading-icon" class="bi {{ $activeHeading['icon'] }}"></i></div><h2 id="auth-heading-title">{{ $activeHeading['title'] }}</h2><p id="auth-heading-copy">{{ $activeHeading['subtitle'] }}</p></div>
             @if(session('status'))<div class="alert success" role="status"><i class="bi bi-check-circle"></i><span>{{ session('status') }}</span></div>@endif
             @if(session('recovery_status'))<div class="alert info" role="status"><i class="bi bi-info-circle"></i><span>{{ session('recovery_status') }}</span></div>@endif
+            @if($isStudentPortal && session('registration_status'))<div class="alert info" role="status"><i class="bi bi-info-circle"></i><span>{{ session('registration_status') }}</span></div>@endif
             @if($firstError)<div class="alert" role="alert"><i class="bi bi-exclamation-circle"></i><span>{{ $firstError }}</span></div>@endif
 
-            <div class="auth-panel" data-panel="login" @if($activePanel !== 'login') hidden @endif>
+            <div class="auth-panel" id="login-panel" data-panel="login" @if($activePanel !== 'login') hidden @endif>
                 <form method="POST" action="{{ $submitRoute }}" autocomplete="off" data-client-location>
                     @csrf
                     @include('partials.login-security-fields')
-                    <div class="field"><i class="bi {{ $loginIcon }}"></i><label for="portal-login" hidden>{{ $loginLabel }}</label><input type="{{ $loginType }}" name="{{ $loginName }}" id="portal-login" value="{{ old($loginName) }}" placeholder="{{ $loginPlaceholder }}" autocomplete="username" maxlength="{{ $loginName === 'student_id' ? 9 : 100 }}" @if($loginName === 'student_id') inputmode="numeric" pattern="\d{4}-\d{4}" title="Format: 2000-1234" @endif data-validation-label="{{ $loginLabel }}" @if($activePanel === 'login') autofocus @endif required></div>
+                    <div class="field"><i class="bi {{ $loginIcon }}"></i><label for="portal-login" hidden>{{ $loginLabel }}</label><input type="{{ $loginType }}" name="{{ $loginName }}" id="portal-login" value="{{ old($loginName) }}" placeholder="{{ $loginPlaceholder }}" autocomplete="username" maxlength="{{ $loginName === 'student_id' ? 50 : 100 }}" @if($loginName === 'student_id') inputmode="numeric" pattern="\d{4}-\d{4}" title="Format: 2000-1234" @endif data-validation-label="{{ $loginLabel }}" @if($activePanel === 'login') autofocus @endif required></div>
                     @if(!empty($roleOptions))
                         <div class="field"><i class="bi bi-person-badge"></i><label for="portal-role" hidden>{{ $roleLabel }}</label><select name="{{ $roleName }}" id="portal-role" data-validation-label="{{ $roleLabel }}" required><option value="">{{ $rolePlaceholder }}</option>@foreach($roleOptions as $value=>$label)<option value="{{ $value }}" @selected(old($roleName)===$value)>{{ $label }}</option>@endforeach</select></div>
                     @endif
@@ -125,45 +148,81 @@
                     <div class="form-options">@if($showRemember)<label class="remember"><input type="checkbox" name="remember" @checked(old('remember'))><span>Remember me</span></label>@else<span></span>@endif<button class="forgot" type="button" data-show-auth-panel="email">Forgot password?</button></div>
                     <button type="submit" class="login-button"><i class="bi bi-box-arrow-in-right"></i><span>Log In</span></button>
                 </form>
-                <a href="{{ route('landing') }}" class="landing-button"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Back to Landing Page</span></a>
+                @if($isStudentPortal)
+                    <p class="register-prompt">No account yet? <button type="button" class="text-action" data-show-auth-panel="register-account">Register your account</button></p>
+                @endif
+                @unless($hideLandingLink)<a href="{{ route('landing') }}" class="landing-button"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Back to Landing Page</span></a>@endunless
             </div>
 
-            <div class="auth-panel" data-panel="email" @if($activePanel !== 'email') hidden @endif>
+            @if($isStudentPortal)
+                <div class="auth-panel" id="register-account-panel" data-panel="register-account" @if($activePanel !== 'register-account') hidden @endif>
+                    <p class="recovery-note">Enter the Microsoft account included in the college student registration list.</p>
+                    <form method="POST" action="{{ route('student.register.send-code') }}">
+                        @csrf
+                        <input type="hidden" name="registration_action" value="account">
+                        <div class="field"><i class="bi bi-microsoft"></i><label for="ms-account" hidden>Microsoft account</label><input type="email" name="ms_account" id="ms-account" value="{{ old('ms_account') }}" placeholder="Microsoft account (e.g. name@mcc.edu.ph)" autocomplete="email" maxlength="150" data-validation-label="Microsoft account" required autofocus></div>
+                        <button type="submit" class="login-button"><i class="bi bi-send"></i><span>Send Registration Code</span></button>
+                    </form>
+                    <button type="button" class="back-button" data-show-auth-panel="login"><i class="bi bi-arrow-left"></i> Back to Login</button>
+                </div>
+
+                @if(is_array($registrationState) && ($registrationState['stage'] ?? null) === 'code')
+                    @php
+                        $registrationEmail = (string) ($registrationState['ms_account'] ?? '');
+                        $registrationParts = str_contains($registrationEmail, '@') ? explode('@', $registrationEmail, 2) : [];
+                        $registrationMasked = count($registrationParts) === 2 ? substr($registrationParts[0], 0, min(2, strlen($registrationParts[0]))) . str_repeat('•', max(3, strlen($registrationParts[0]) - 2)) . '@' . $registrationParts[1] : $registrationEmail;
+                    @endphp
+                    <div class="auth-panel" id="register-code-panel" data-panel="register-code" @if($activePanel !== 'register-code') hidden @endif>
+                        <p class="recovery-note">Code sent to <strong>{{ $registrationMasked }}</strong>. It expires after 10 minutes.</p>
+                        <form method="POST" action="{{ route('student.register.verify-code') }}">
+                            @csrf
+                            <div class="field code-field"><i class="bi bi-shield-lock"></i><label for="registration-code" hidden>Six-digit registration code</label><input type="text" inputmode="numeric" name="verification_code" id="registration-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" autocomplete="one-time-code" data-validation-label="Registration code" data-validation-rule="verification-code" required autofocus></div>
+                            <button type="submit" class="login-button"><i class="bi bi-check2-circle"></i><span>Verify &amp; Continue</span></button>
+                        </form>
+                        <div class="recovery-footer">
+                            <form method="POST" action="{{ route('student.register.send-code') }}">@csrf<input type="hidden" name="ms_account" value="{{ $registrationEmail }}"><button type="submit" class="text-action">Resend code</button></form>
+                            <form method="POST" action="{{ route('student.register.cancel') }}">@csrf<button type="submit" class="text-action muted">Cancel and return to login</button></form>
+                        </div>
+                    </div>
+                @endif
+            @endif
+
+            <div class="auth-panel" id="email-panel" data-panel="email" @if($activePanel !== 'email') hidden @endif>
                 <div class="recovery-steps" aria-label="Password recovery step 1 of 3"><span class="recovery-step active"></span><span class="recovery-step"></span><span class="recovery-step"></span></div>
                 <p class="recovery-note">Enter your registered email. We will confirm that the {{ strtolower($portalName) }} account exists before sending a code.</p>
-                <form method="POST" action="{{ route('portal-password-recovery.send-code', $recoveryPortal) }}">
-                    @csrf<input type="hidden" name="recovery_action" value="email"><input type="hidden" name="recovery_portal" value="{{ $recoveryPortal }}">
+                <form method="POST" action="{{ $recoveryRoutes['send'] }}">
+                    @csrf<input type="hidden" name="recovery_action" value="email">@unless($isStudentPortal)<input type="hidden" name="recovery_portal" value="{{ $recoveryPortal }}">@endunless
                     <div class="field"><i class="bi bi-envelope"></i><label for="recovery-email" hidden>Registered email</label><input type="email" name="email" id="recovery-email" value="{{ old('email', $recoveryEmail) }}" placeholder="Registered email address" autocomplete="email" maxlength="150" data-validation-label="Registered email address" required></div>
                     <button type="submit" class="login-button"><i class="bi bi-send"></i><span>Verify Account &amp; Send Code</span></button>
                 </form>
                 <button type="button" class="back-button" data-show-auth-panel="login"><i class="bi bi-arrow-left"></i> Back to Login</button>
             </div>
 
-            <div class="auth-panel" data-panel="code" @if($activePanel !== 'code') hidden @endif>
+            <div class="auth-panel" id="code-panel" data-panel="code" @if($activePanel !== 'code') hidden @endif>
                 <div class="recovery-steps" aria-label="Password recovery step 2 of 3"><span class="recovery-step active"></span><span class="recovery-step active"></span><span class="recovery-step"></span></div>
                 <p class="recovery-note">Code sent to <strong>{{ $maskedEmail }}</strong>. It expires after 10 minutes.</p>
-                <form method="POST" action="{{ route('portal-password-recovery.verify-code', $recoveryPortal) }}">
+                <form method="POST" action="{{ $recoveryRoutes['verify'] }}">
                     @csrf
                     <div class="field code-field"><i class="bi bi-shield-lock"></i><label for="verification-code" hidden>Six-digit verification code</label><input type="text" inputmode="numeric" name="verification_code" id="verification-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" autocomplete="one-time-code" data-validation-label="Verification code" data-validation-rule="verification-code" required autofocus></div>
                     <button type="submit" class="login-button"><i class="bi bi-check2-circle"></i><span>Confirm Verification Code</span></button>
                 </form>
                 <div class="recovery-footer">
-                    <form method="POST" action="{{ route('portal-password-recovery.send-code', $recoveryPortal) }}">@csrf<input type="hidden" name="email" value="{{ $recoveryEmail }}"><button type="submit" class="text-action">Resend code</button></form>
-                    <form method="POST" action="{{ route('portal-password-recovery.cancel', $recoveryPortal) }}">@csrf<button type="submit" class="text-action muted">Cancel and return to login</button></form>
+                    <form method="POST" action="{{ $recoveryRoutes['send'] }}">@csrf<input type="hidden" name="email" value="{{ $recoveryEmail }}"><button type="submit" class="text-action">Resend code</button></form>
+                    <form method="POST" action="{{ $recoveryRoutes['cancel'] }}">@csrf<button type="submit" class="text-action muted">Cancel and return to login</button></form>
                 </div>
             </div>
 
-            <div class="auth-panel" data-panel="reset" @if($activePanel !== 'reset') hidden @endif>
+            <div class="auth-panel" id="reset-panel" data-panel="reset" @if($activePanel !== 'reset') hidden @endif>
                 <div class="recovery-steps" aria-label="Password recovery step 3 of 3"><span class="recovery-step active"></span><span class="recovery-step active"></span><span class="recovery-step active"></span></div>
                 <p class="recovery-note">Email verified for <strong>{{ $maskedEmail }}</strong>.</p>
-                <form method="POST" action="{{ route('portal-password-recovery.reset', $recoveryPortal) }}">
+                <form method="POST" action="{{ $recoveryRoutes['reset'] }}">
                     @csrf
                     <div class="field"><i class="bi bi-lock"></i><label for="new-password" hidden>New password</label><input type="password" name="password" id="new-password" placeholder="New password" autocomplete="new-password" minlength="8" maxlength="128" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}" data-validation-label="New password" data-validation-rule="strong-password" data-password-primary required><button class="password-toggle" type="button" data-password-toggle="new-password" aria-label="Show password" aria-pressed="false"><i class="bi bi-eye"></i></button></div>
                     <div class="field"><i class="bi bi-shield-lock"></i><label for="new-password-confirmation" hidden>Confirm new password</label><input type="password" name="password_confirmation" id="new-password-confirmation" placeholder="Confirm new password" autocomplete="new-password" maxlength="128" data-validation-label="Password confirmation" data-password-confirmation required><button class="password-toggle" type="button" data-password-toggle="new-password-confirmation" aria-label="Show password" aria-pressed="false"><i class="bi bi-eye"></i></button></div>
                     <p class="password-hint">Use at least 8 characters with uppercase, lowercase, a number, and a special character.</p>
                     <button type="submit" class="login-button"><i class="bi bi-check2-circle"></i><span>Save New Password</span></button>
                 </form>
-                <form method="POST" action="{{ route('portal-password-recovery.cancel', $recoveryPortal) }}">@csrf<button type="submit" class="back-button"><i class="bi bi-x-lg"></i> Cancel Password Reset</button></form>
+                <form method="POST" action="{{ $recoveryRoutes['cancel'] }}">@csrf<button type="submit" class="back-button"><i class="bi bi-x-lg"></i> Cancel Password Reset</button></form>
             </div>
 
             @if(is_array($loginChallenge))
@@ -172,7 +231,7 @@
                     $otpParts = str_contains($otpEmail, '@') ? explode('@', $otpEmail, 2) : [];
                     $otpMasked = count($otpParts) === 2 ? substr($otpParts[0], 0, min(2, strlen($otpParts[0]))).str_repeat('•', max(3, strlen($otpParts[0]) - 2)).'@'.$otpParts[1] : $otpEmail;
                 @endphp
-                <div class="auth-panel" data-panel="device-otp" @if($activePanel !== 'device-otp') hidden @endif>
+                <div class="auth-panel" id="device-otp-panel" data-panel="device-otp" @if($activePanel !== 'device-otp') hidden @endif>
                     <p class="recovery-note">This device has not signed in to this account before, so we emailed a code to <strong>{{ $otpMasked }}</strong>. It expires after 10 minutes and works only once.</p>
                     <form method="POST" action="{{ route("{$otpRoute}.verify") }}" data-client-location>
                         @csrf
