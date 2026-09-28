@@ -12,9 +12,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <link href="{{ asset('css/auth-form-validation.css') }}" rel="stylesheet">
-    @if(config('services.recaptcha.enabled') && config('services.recaptcha.site_key'))
-        <script src="https://www.google.com/recaptcha/api.js?render={{ urlencode((string) config('services.recaptcha.site_key')) }}" async defer></script>
-    @endif
     <style>
         :root { --blue:#075bea; --ink:#071b50; --muted:#526b91; }
         * { box-sizing:border-box; }
@@ -107,7 +104,7 @@
             @if($firstError)<div class="alert" role="alert"><i class="bi bi-exclamation-circle"></i><span>{{ $firstError }}</span></div>@endif
 
             <div class="auth-panel" data-panel="login" @if($activePanel !== 'login') hidden @endif>
-                <form method="POST" action="{{ $submitRoute }}" autocomplete="off" data-secure-login data-client-location data-recaptcha-site-key="{{ config('services.recaptcha.enabled') ? config('services.recaptcha.site_key') : '' }}">
+                <form method="POST" action="{{ $submitRoute }}" autocomplete="off" data-client-location>
                     @csrf
                     @include('partials.login-security-fields')
                     <div class="field"><i class="bi {{ $loginIcon }}"></i><label for="portal-login" hidden>{{ $loginLabel }}</label><input type="{{ $loginType }}" name="{{ $loginName }}" id="portal-login" value="{{ old($loginName) }}" placeholder="{{ $loginPlaceholder }}" autocomplete="username" maxlength="{{ $loginName === 'student_id' ? 9 : 100 }}" @if($loginName === 'student_id') inputmode="numeric" pattern="\d{4}-\d{4}" title="Format: 2000-1234" @endif data-validation-label="{{ $loginLabel }}" @if($activePanel === 'login') autofocus @endif required></div>
@@ -179,7 +176,7 @@
                     <p class="recovery-note">This device has not signed in to this account before, so we emailed a code to <strong>{{ $otpMasked }}</strong>. It expires after 10 minutes and works only once.</p>
                     <form method="POST" action="{{ route("{$otpRoute}.verify") }}" data-client-location>
                         @csrf
-                        @include('partials.login-security-fields', ['includeRecaptcha' => false])
+                        @include('partials.login-security-fields')
                         <div class="field code-field"><i class="bi bi-shield-lock"></i><label for="device-login-code" hidden>Six-digit sign-in code</label><input type="text" inputmode="numeric" name="verification_code" id="device-login-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" autocomplete="one-time-code" data-validation-label="Sign-in code" data-validation-rule="verification-code" required autofocus></div>
                         <button type="submit" class="login-button"><i class="bi bi-shield-check"></i><span>Verify &amp; Open {{ $portalName }}</span></button>
                     </form>

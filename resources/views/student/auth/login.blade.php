@@ -12,9 +12,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <link href="{{ asset('css/auth-form-validation.css') }}" rel="stylesheet">
-    @if(config('services.recaptcha.enabled') && config('services.recaptcha.site_key'))
-        <script src="https://www.google.com/recaptcha/api.js?render={{ urlencode((string) config('services.recaptcha.site_key')) }}" async defer></script>
-    @endif
     <style>
         :root {
             --blue: #075bea;
@@ -435,7 +432,7 @@
                 @endif
 
                 <div class="auth-panel" id="login-panel" data-panel="login" @if($activePanel !== 'login') hidden @endif>
-                    <form method="POST" action="{{ route('student.login.submit') }}" data-secure-login data-client-location data-recaptcha-site-key="{{ config('services.recaptcha.enabled') ? config('services.recaptcha.site_key') : '' }}">
+                    <form method="POST" action="{{ route('student.login.submit') }}" data-client-location>
                         @csrf
                         @include('partials.login-security-fields')
                         <div class="field">
@@ -582,7 +579,7 @@
                         <p class="recovery-note">This device has not signed in to your account before, so we emailed a code to <strong>{{ $otpMasked }}</strong>. It expires after 10 minutes and works only once.</p>
                         <form method="POST" action="{{ route('student.login.otp.verify') }}" data-client-location>
                             @csrf
-                            @include('partials.login-security-fields', ['includeRecaptcha' => false])
+                            @include('partials.login-security-fields')
                             <div class="field code-field">
                                 <i class="bi bi-shield-lock" aria-hidden="true"></i>
                                 <label for="device_login_code" hidden>Six-digit sign-in code</label>

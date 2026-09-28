@@ -17,7 +17,6 @@ class LimitRequestFieldLengths
         'password_confirmation' => 128,
         'verification_code' => 6,
         'captcha_answer' => 5,
-        'recaptcha_token' => 4096,
         'firstname' => 100,
         'lastname' => 100,
         'title' => 200,

@@ -80,7 +80,7 @@ Route::middleware('guest:admin')->group(function () {
 
     // Login Process
     Route::post('/login', [AdminAuthController::class, 'login'])
-        ->middleware(['throttle:login', 'recaptcha:login'])
+        ->middleware('throttle:login')
         ->name('login.post');
     Route::post('/mainAdmin/login-code', [AdminAuthController::class, 'verifyLoginCode'])
         ->middleware('throttle:otp-verify')->name('login.otp.verify');

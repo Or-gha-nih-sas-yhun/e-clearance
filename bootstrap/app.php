@@ -13,7 +13,6 @@ use App\Http\Middleware\RegistrarAuthenticate;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\StudentAuthenticate;
 use App\Http\Middleware\TreasurerAuthenticate;
-use App\Http\Middleware\VerifyRecaptchaV3;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -50,7 +49,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'student.auth' => StudentAuthenticate::class,
             'registrar.auth' => RegistrarAuthenticate::class,
             'treasurer.auth' => TreasurerAuthenticate::class,
-            'recaptcha' => VerifyRecaptchaV3::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

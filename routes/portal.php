@@ -28,7 +28,7 @@ Route::prefix('student')->name('student.')->group(function () {
         return redirect()->route('student.login');
     });
     Route::get('login', [StudentAuthController::class, 'showLogin'])->name('login');
-    Route::post('login', [StudentAuthController::class, 'login'])->middleware(['throttle:login', 'recaptcha:login'])->name('login.submit');
+    Route::post('login', [StudentAuthController::class, 'login'])->middleware('throttle:login')->name('login.submit');
     Route::post('login-code', [StudentAuthController::class, 'verifyLoginCode'])
         ->middleware('throttle:otp-verify')->name('login.otp.verify');
     Route::post('login-code/resend', [StudentAuthController::class, 'resendLoginCode'])
@@ -93,7 +93,7 @@ Route::prefix('registrar')->name('registrar.')->group(function () {
         return redirect()->route('registrar.login');
     });
     Route::get('login', [RegistrarAuthController::class, 'showLogin'])->name('login');
-    Route::post('login', [RegistrarAuthController::class, 'login'])->middleware(['throttle:login', 'recaptcha:login'])->name('login.submit');
+    Route::post('login', [RegistrarAuthController::class, 'login'])->middleware('throttle:login')->name('login.submit');
     Route::post('login-code', [RegistrarAuthController::class, 'verifyLoginCode'])
         ->middleware('throttle:otp-verify')->name('login.otp.verify');
     Route::post('login-code/resend', [RegistrarAuthController::class, 'resendLoginCode'])

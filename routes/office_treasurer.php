@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Route;
 */
 Route::prefix('office')->name('office.')->group(function () {
     Route::get('login', [OfficeAuthController::class, 'showLogin'])->name('login');
-    Route::post('login', [OfficeAuthController::class, 'login'])->middleware(['throttle:login', 'recaptcha:login'])->name('login.submit');
+    Route::post('login', [OfficeAuthController::class, 'login'])->middleware('throttle:login')->name('login.submit');
     Route::post('login-code', [OfficeAuthController::class, 'verifyLoginCode'])
         ->middleware('throttle:otp-verify')->name('login.otp.verify');
     Route::post('login-code/resend', [OfficeAuthController::class, 'resendLoginCode'])
@@ -66,7 +66,7 @@ Route::prefix('office')->name('office.')->group(function () {
 */
 Route::prefix('treasurer')->name('treasurer.')->group(function () {
     Route::get('login', [TreasurerAuthController::class, 'showLogin'])->name('login');
-    Route::post('login', [TreasurerAuthController::class, 'login'])->middleware(['throttle:login', 'recaptcha:login'])->name('login.submit');
+    Route::post('login', [TreasurerAuthController::class, 'login'])->middleware('throttle:login')->name('login.submit');
     Route::post('login-code', [TreasurerAuthController::class, 'verifyLoginCode'])
         ->middleware('throttle:otp-verify')->name('login.otp.verify');
     Route::post('login-code/resend', [TreasurerAuthController::class, 'resendLoginCode'])

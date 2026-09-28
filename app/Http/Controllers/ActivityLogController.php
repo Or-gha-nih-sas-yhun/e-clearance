@@ -34,7 +34,6 @@ class ActivityLogController extends Controller
         'authentication.blocked' => 'Sign-in blocked',
         'authentication.locked' => 'Account locked out',
         'authentication.captcha_failed' => 'Failed captcha check',
-        'authentication.recaptcha_failed' => 'Failed reCAPTCHA check',
         'authentication.mfa_challenge_sent' => 'Verification code sent',
         'authentication.mfa_verified' => 'Verification code accepted',
         'authentication.mfa_failed' => 'Wrong verification code',
@@ -68,7 +67,6 @@ class ActivityLogController extends Controller
         'authentication.blocked',
         'authentication.locked',
         'authentication.captcha_failed',
-        'authentication.recaptcha_failed',
         'authentication.mfa_failed',
         'authentication.mfa_locked',
     ];
