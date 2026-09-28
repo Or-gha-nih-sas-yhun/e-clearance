@@ -46,6 +46,12 @@ final class AuditLogger
             }
 
             $request = app()->bound('request') ? request() : null;
+            $location = $request?->hasSession()
+                ? $request->session()->get('security.client_location')
+                : null;
+            if (is_array($location)) {
+                $metadata['location'] = $location;
+            }
 
             SecurityAuditLog::create([
                 'event' => Str::limit($event, 100, ''),

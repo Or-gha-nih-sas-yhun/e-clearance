@@ -8,6 +8,7 @@ use App\Models\Notification;
 use App\Models\StudentAccount;
 use App\Support\ClearanceAccess;
 use App\Support\ClearanceWorkflow;
+use App\Support\LibraryEvaluation;
 use App\Support\SubmissionFileResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -210,7 +211,15 @@ class DashboardController extends Controller
             ->orderBy('office_clearance_status.updated_at', $sort)
             ->paginate(15)->withQueryString();
 
-        return view('office.clearance-requests', compact('office', 'officeName', 'requests', 'pendingCount', 'approvedCount', 'totalStudents', 'filterPrograms', 'filterYears', 'filterSections'));
+        $evaluationScope = match ($officeName) {
+            'library' => 'library',
+            'guidance office' => 'guidance',
+            default => null,
+        };
+        $officeEvaluation = $evaluationScope ? LibraryEvaluation::current($evaluationScope) : null;
+        $evaluationCompletions = LibraryEvaluation::completions($officeEvaluation, $requests->pluck('student_id')->all(), $evaluationScope ?? 'library');
+
+        return view('office.clearance-requests', compact('office', 'officeName', 'requests', 'pendingCount', 'approvedCount', 'totalStudents', 'filterPrograms', 'filterYears', 'filterSections', 'officeEvaluation', 'evaluationCompletions'));
     }
 
     public function setClearanceStatus(Request $request)
@@ -231,7 +240,11 @@ class DashboardController extends Controller
         if ($data['status'] === 'Approved' && ! ClearanceWorkflow::prerequisitesMet($student, $officeRole)) {
             return $this->refuseClearanceChange(
                 $request,
-                'This clearance cannot be approved until its required earlier clearances are complete.',
+                match ($officeRole) {
+                    'library' => 'The student must complete the current Library Evaluation before approval.',
+                    'guidance office' => 'The student must complete the current Guidance Evaluation before approval.',
+                    default => 'This clearance cannot be approved until its required earlier clearances are complete.',
+                },
             );
         }
 
@@ -332,7 +345,11 @@ class DashboardController extends Controller
                 ->first(fn (StudentAccount $student) => ! ClearanceWorkflow::prerequisitesMet($student, $officeRole));
 
             if ($blocked) {
-                $message = "Student {$blocked->student_id} has incomplete prerequisite clearances.";
+                $message = match ($officeRole) {
+                    'library' => "Student {$blocked->student_id} must complete the current Library Evaluation before approval.",
+                    'guidance office' => "Student {$blocked->student_id} must complete the current Guidance Evaluation before approval.",
+                    default => "Student {$blocked->student_id} has incomplete prerequisite clearances.",
+                };
 
                 return $request->expectsJson()
                     ? response()->json(['success' => false, 'message' => $message, 'errors' => ['student_ids' => [$message]]], 422)

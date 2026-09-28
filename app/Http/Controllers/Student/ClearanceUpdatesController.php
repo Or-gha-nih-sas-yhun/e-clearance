@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Student;
 
-use App\Support\SectionKey;
-
 use App\Http\Controllers\Controller;
 use App\Models\ClearanceStatus;
 use App\Models\Notification;
 use App\Models\StudentAccount;
 use App\Support\ClearanceWorkflow;
+use App\Support\LibraryEvaluation;
+use App\Support\SectionKey;
 use App\Support\SecureUpload;
 use App\Support\StudentSubjects;
 use App\Support\SubmissionFileResponse;
@@ -111,6 +111,8 @@ class ClearanceUpdatesController extends Controller
         $student = Auth::guard('student')->user();
         $officeRole = $this->validatedOfficeRole($data['office_role']);
 
+        $this->ensureOfficeEvaluationCompleted($student, $officeRole);
+
         abort_if(DB::table('office_clearance_status')
             ->where('student_id', $student->student_id)
             ->where('office_role', $officeRole)
@@ -196,6 +198,8 @@ class ClearanceUpdatesController extends Controller
 
     private function ensureOfficeRequestMayBeOpened(StudentAccount $student, string $officeRole): void
     {
+        $this->ensureOfficeEvaluationCompleted($student, $officeRole);
+
         if (! ClearanceWorkflow::prerequisitesMet($student, $officeRole)) {
             throw ValidationException::withMessages([
                 'office_role' => 'Complete the required earlier clearance steps before submitting to this office.',
@@ -205,6 +209,20 @@ class ClearanceUpdatesController extends Controller
         if (! ClearanceWorkflow::canOpenOfficeRequest($student, $officeRole)) {
             throw ValidationException::withMessages([
                 'office_role' => 'This office clearance request is already active or approved.',
+            ]);
+        }
+    }
+
+    private function ensureOfficeEvaluationCompleted(StudentAccount $student, string $officeRole): void
+    {
+        if ($officeRole === 'library' && ! LibraryEvaluation::submissionAllowed($student->student_id)) {
+            throw ValidationException::withMessages([
+                'office_role' => 'Complete the Library Evaluation before submitting your library clearance.',
+            ]);
+        }
+        if ($officeRole === 'guidance office' && ! LibraryEvaluation::submissionAllowed($student->student_id, 'guidance')) {
+            throw ValidationException::withMessages([
+                'office_role' => 'Complete the Guidance Evaluation before submitting your guidance clearance.',
             ]);
         }
     }
@@ -423,6 +441,16 @@ class ClearanceUpdatesController extends Controller
         // server-side gate, so this page can never offer a step the server
         // would refuse — or hide one it requires.
         $officeRoles = ClearanceWorkflow::officeChainFor($student);
+        $evaluations = [
+            'library' => LibraryEvaluation::current(),
+            'guidance office' => LibraryEvaluation::current('guidance'),
+        ];
+        $evaluationResponses = [
+            'library' => $evaluations['library']
+                ? LibraryEvaluation::response($evaluations['library']->id, $student->student_id) : null,
+            'guidance office' => $evaluations['guidance office']
+                ? LibraryEvaluation::response($evaluations['guidance office']->id, $student->student_id, 'guidance') : null,
+        ];
 
         foreach ($officeRoles as $role) {
             $status = $officeStatusMap[$role['key']] ?? null;
@@ -439,6 +467,13 @@ class ClearanceUpdatesController extends Controller
                 $canSubmit = false;
             }
 
+            $evaluationRequired = ($evaluations[$role['key']] ?? null) !== null;
+            $evaluationResponse = $evaluationResponses[$role['key']] ?? null;
+            $evaluationCompleted = $evaluationRequired && $evaluationResponse !== null;
+            if ($evaluationRequired && ! $evaluationCompleted) {
+                $canSubmit = false;
+            }
+
             $officeItems[] = [
                 'key' => $role['key'],
                 'label' => $role['label'],
@@ -449,6 +484,11 @@ class ClearanceUpdatesController extends Controller
                 'can_submit' => $canSubmit && (($status->status ?? null) === null || ($status->status ?? null) === 'Rejected'),
                 'requires' => $role['requires'],
                 'submission' => $officeSubmissionMap[$role['key']] ?? null,
+                'evaluation_required' => $evaluationRequired,
+                'evaluation_completed' => $evaluationCompleted,
+                'evaluation_completed_at' => $evaluationCompleted ? $evaluationResponse->completed_at : null,
+                'evaluation_route' => $role['key'] === 'guidance office' ? 'student.guidance-evaluation.index' : 'student.library-evaluation.index',
+                'evaluation_label' => $role['key'] === 'guidance office' ? 'Guidance Evaluation' : 'Library Evaluation',
             ];
         }
 

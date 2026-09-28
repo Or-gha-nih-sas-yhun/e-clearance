@@ -4,7 +4,7 @@
 @section('content')
 <x-main-admin.page-header
     title="User Activity"
-    description="Track who signed in, what they changed, from which device, and when."
+    description="Track who signed in, what they changed, from which device and location, and when."
     icon="bi bi-activity"
     eyebrow="Monitoring"
 />
@@ -122,7 +122,7 @@
             <thead>
                 <tr>
                     <th>Date &amp; Time</th><th>Account</th><th>Portal</th>
-                    <th>Activity</th><th>Device</th><th>IP Address</th>
+                    <th>Activity</th><th>Device</th><th>Location</th><th>IP Address</th>
                 </tr>
             </thead>
             <tbody>
@@ -149,10 +149,18 @@
                         <i class="{{ $activity->device['icon'] }} me-1" aria-hidden="true"></i>{{ $activity->device['label'] }}
                         <div style="color:var(--muted);font-size:12px;text-transform:capitalize;">{{ $activity->device['category'] }}</div>
                     </td>
+                    <td style="white-space:nowrap;">
+                        @if($activity->location)
+                            <a href="{{ $activity->location['url'] }}" target="_blank" rel="noopener noreferrer" style="font-size:12px;font-weight:700;"><i class="bi bi-geo-alt me-1"></i>{{ $activity->location['label'] }}</a>
+                            @if($activity->location['accuracy'])<div style="color:var(--muted);font-size:11px;">Within {{ number_format($activity->location['accuracy']) }} m</div>@endif
+                        @else
+                            <span style="color:var(--muted);font-size:12px;">Not shared</span>
+                        @endif
+                    </td>
                     <td style="font-family:monospace;font-size:12px;">{{ $activity->ip_address ?: '—' }}</td>
                 </tr>
             @empty
-                <tr><td colspan="6" class="empty-state">No activity matches the selected filters.</td></tr>
+                <tr><td colspan="7" class="empty-state">No activity matches the selected filters.</td></tr>
             @endforelse
             </tbody>
         </table>

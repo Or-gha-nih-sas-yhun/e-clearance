@@ -12,6 +12,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <link href="{{ asset('css/auth-form-validation.css') }}" rel="stylesheet">
+    @if(config('services.recaptcha.enabled') && config('services.recaptcha.site_key'))
+        <script src="https://www.google.com/recaptcha/api.js?render={{ urlencode((string) config('services.recaptcha.site_key')) }}" async defer></script>
+    @endif
     <style>
         :root {
             --blue: #075bea;
@@ -432,12 +435,13 @@
                 @endif
 
                 <div class="auth-panel" id="login-panel" data-panel="login" @if($activePanel !== 'login') hidden @endif>
-                    <form method="POST" action="{{ route('student.login.submit') }}">
+                    <form method="POST" action="{{ route('student.login.submit') }}" data-secure-login data-client-location data-recaptcha-site-key="{{ config('services.recaptcha.enabled') ? config('services.recaptcha.site_key') : '' }}">
                         @csrf
+                        @include('partials.login-security-fields')
                         <div class="field">
                             <i class="bi bi-person" aria-hidden="true"></i>
                             <label for="student_id" hidden>Student ID</label>
-                            <input type="text" name="student_id" id="student_id" value="{{ old('student_id') }}" placeholder="Student ID" autocomplete="username" maxlength="50" data-validation-label="Student ID" @if($activePanel === 'login') autofocus @endif required @error('student_id') aria-invalid="true" @enderror>
+                            <input type="text" name="student_id" id="student_id" value="{{ old('student_id') }}" placeholder="Student ID (2000-1234)" autocomplete="username" maxlength="50" title="Format: 2000-1234" data-validation-label="Student ID" @if($activePanel === 'login') autofocus @endif required @error('student_id') aria-invalid="true" @enderror>
                         </div>
                         <div class="field">
                             <i class="bi bi-lock" aria-hidden="true"></i>
@@ -576,8 +580,9 @@
                     @endphp
                     <div class="auth-panel" id="device-otp-panel" data-panel="device-otp" @if($activePanel !== 'device-otp') hidden @endif>
                         <p class="recovery-note">This device has not signed in to your account before, so we emailed a code to <strong>{{ $otpMasked }}</strong>. It expires after 10 minutes and works only once.</p>
-                        <form method="POST" action="{{ route('student.login.otp.verify') }}">
+                        <form method="POST" action="{{ route('student.login.otp.verify') }}" data-client-location>
                             @csrf
+                            @include('partials.login-security-fields', ['includeRecaptcha' => false])
                             <div class="field code-field">
                                 <i class="bi bi-shield-lock" aria-hidden="true"></i>
                                 <label for="device_login_code" hidden>Six-digit sign-in code</label>
@@ -642,5 +647,6 @@
         });
     </script>
     <script src="{{ asset('js/auth-form-validation.js') }}"></script>
+    <script src="{{ asset('js/login-security.js') }}"></script>
 </body>
 </html>

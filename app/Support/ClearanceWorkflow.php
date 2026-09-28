@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-
 use App\Models\StudentAccount;
 use Illuminate\Support\Facades\DB;
 
@@ -149,6 +148,13 @@ final class ClearanceWorkflow
         $officeRole = self::normalizeOfficeRole($officeRole) ?? '';
 
         if (! self::officeApplies($officeRole, $student)) {
+            return false;
+        }
+
+        if ($officeRole === 'library' && ! LibraryEvaluation::submissionAllowed($student->student_id)) {
+            return false;
+        }
+        if ($officeRole === 'guidance office' && ! LibraryEvaluation::submissionAllowed($student->student_id, 'guidance')) {
             return false;
         }
 

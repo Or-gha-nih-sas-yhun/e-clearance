@@ -34,6 +34,7 @@ class ActivityLogController extends Controller
         'authentication.blocked' => 'Sign-in blocked',
         'authentication.locked' => 'Account locked out',
         'authentication.captcha_failed' => 'Failed captcha check',
+        'authentication.recaptcha_failed' => 'Failed reCAPTCHA check',
         'authentication.mfa_challenge_sent' => 'Verification code sent',
         'authentication.mfa_verified' => 'Verification code accepted',
         'authentication.mfa_failed' => 'Wrong verification code',
@@ -67,6 +68,7 @@ class ActivityLogController extends Controller
         'authentication.blocked',
         'authentication.locked',
         'authentication.captcha_failed',
+        'authentication.recaptcha_failed',
         'authentication.mfa_failed',
         'authentication.mfa_locked',
     ];
@@ -186,6 +188,18 @@ class ActivityLogController extends Controller
         return $rows->map(function (SecurityAuditLog $row) use ($names) {
             $device = DeviceFingerprint::describe($row->user_agent);
             $guard = (string) $row->actor_guard;
+            $locationData = is_array($row->metadata['location'] ?? null) ? $row->metadata['location'] : [];
+            $latitude = is_numeric($locationData['latitude'] ?? null) ? (float) $locationData['latitude'] : null;
+            $longitude = is_numeric($locationData['longitude'] ?? null) ? (float) $locationData['longitude'] : null;
+            $location = $latitude !== null && $longitude !== null
+                ? [
+                    'label' => number_format($latitude, 5).', '.number_format($longitude, 5),
+                    'url' => 'https://www.openstreetmap.org/?mlat='.rawurlencode((string) $latitude)
+                        .'&mlon='.rawurlencode((string) $longitude).'#map=16/'.$latitude.'/'.$longitude,
+                    'accuracy' => is_numeric($locationData['accuracy_meters'] ?? null)
+                        ? (int) round((float) $locationData['accuracy_meters']) : null,
+                ]
+                : null;
 
             return (object) [
                 'id' => $row->id,
@@ -197,6 +211,7 @@ class ActivityLogController extends Controller
                 'actor_name' => $names->get($guard)?->get((string) $row->actor_id) ?: null,
                 'device' => $device,
                 'ip_address' => (string) ($row->ip_address ?? ''),
+                'location' => $location,
                 'user_agent' => (string) ($row->user_agent ?? ''),
                 'subject' => trim(implode(' · ', array_filter([$row->subject_type, $row->subject_id]))),
                 'details' => $this->details($row),
@@ -215,7 +230,7 @@ class ActivityLogController extends Controller
     private function details(SecurityAuditLog $row): string
     {
         return collect(is_array($row->metadata) ? $row->metadata : [])
-            ->except(['route', 'identifier_hash', 'guard'])
+            ->except(['route', 'identifier_hash', 'guard', 'location'])
             ->filter(fn ($value) => $value !== null && $value !== '' && ! is_array($value))
             ->map(fn ($value, $key) => ucfirst(str_replace('_', ' ', (string) $key)).': '.$value)
             ->take(3)

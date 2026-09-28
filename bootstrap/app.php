@@ -1,15 +1,19 @@
 <?php
 
 use App\Http\Middleware\AuditSecurityEvents;
+use App\Http\Middleware\CaptureClientLocation;
 use App\Http\Middleware\ForceHttps;
 use App\Http\Middleware\InstructorAuthenticate;
+use App\Http\Middleware\LimitRequestFieldLengths;
 use App\Http\Middleware\MainAdminAuth;
+use App\Http\Middleware\NormalizeStudentIds;
 use App\Http\Middleware\OfficeAuthenticate;
 use App\Http\Middleware\PreventBackHistory;
 use App\Http\Middleware\RegistrarAuthenticate;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\StudentAuthenticate;
 use App\Http\Middleware\TreasurerAuthenticate;
+use App\Http\Middleware\VerifyRecaptchaV3;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -31,7 +35,13 @@ return Application::configure(basePath: dirname(__DIR__))
         if ($trustedProxies !== []) {
             $middleware->trustProxies(at: $trustedProxies);
         }
-        $middleware->web(append: [AuditSecurityEvents::class]);
+        $middleware->web(append: [
+            NormalizeStudentIds::class,
+            LimitRequestFieldLengths::class,
+            CaptureClientLocation::class,
+            'throttle:web',
+            AuditSecurityEvents::class,
+        ]);
         $middleware->alias([
             'admin.auth' => MainAdminAuth::class,
             'instructor.auth' => InstructorAuthenticate::class,
@@ -40,6 +50,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'student.auth' => StudentAuthenticate::class,
             'registrar.auth' => RegistrarAuthenticate::class,
             'treasurer.auth' => TreasurerAuthenticate::class,
+            'recaptcha' => VerifyRecaptchaV3::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

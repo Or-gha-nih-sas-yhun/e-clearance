@@ -52,10 +52,12 @@
 
     const close = () => {
         if (!openViewer) return;
-        openViewer.classList.remove('show');
-        openViewer.setAttribute('aria-hidden', 'true');
+        const viewer = openViewer;
+        viewer.classList.remove('show');
+        viewer.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('clearance-form-viewer-open');
         openViewer = null;
+        viewer.dispatchEvent(new CustomEvent('clearance-document:closed', { bubbles: true }));
         const trigger = lastTrigger;
         lastTrigger = null;
         if (trigger) window.setTimeout(() => trigger.focus(), 160);

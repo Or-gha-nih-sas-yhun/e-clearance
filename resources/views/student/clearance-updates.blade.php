@@ -238,6 +238,9 @@
                 <button class="office-clearance-card" type="button" data-office-modal-open="{{ $officeModalId }}" aria-controls="{{ $officeModalId }}" aria-haspopup="dialog">
                     <span class="office-card-head"><span class="office-card-identity"><span class="clearance-icon"><i class="bi {{ $officeIcons[strtolower($office['key'])] ?? 'bi-building' }}"></i></span><span><strong>{{ $office['label'] }}</strong><small>Office clearance</small></span></span></span>
                     <span class="office-card-meta"><span class="office-card-approver"><i class="bi bi-person-badge"></i><span><small>Clearance approver</small><strong>{{ $office['approver_name'] }}</strong></span></span><span class="office-card-status {{ $officeTone }}">{{ $office['status'] }}</span></span>
+                    @if($office['evaluation_required'] ?? false)
+                        <span class="office-card-status {{ $office['evaluation_completed'] ? 'success' : 'warning' }}">Evaluation: {{ $office['evaluation_completed'] ? 'Completed' : 'Not completed' }}</span>
+                    @endif
                     <span class="office-card-foot"><span>View requirements, remarks, and submission</span><i class="bi bi-arrow-right"></i></span>
                 </button>
             @empty
@@ -321,6 +324,17 @@
 
                     <div class="office-detail-actions">
                         <h4>Available action</h4>
+                        @if($office['evaluation_required'] ?? false)
+                            <div class="alert {{ $office['evaluation_completed'] ? 'alert-success' : 'alert-warning' }}">
+                                <strong>{{ $office['evaluation_label'] }}: {{ $office['evaluation_completed'] ? 'Completed' : 'Not completed' }}</strong>
+                                @if($office['evaluation_completed'])
+                                    <p class="mb-2 small">Completed {{ \Carbon\Carbon::parse($office['evaluation_completed_at'])->format('M d, Y h:i A') }}.</p>
+                                @else
+                                    <p class="mb-2 small">Answer every evaluation question before submitting {{ strtolower($office['label']) }} clearance.</p>
+                                @endif
+                                <a class="btn btn-sm {{ $office['evaluation_completed'] ? 'btn-outline-success' : 'btn-primary' }}" href="{{ route($office['evaluation_route']) }}">{{ $office['evaluation_completed'] ? 'View my response' : 'Answer evaluation' }}</a>
+                            </div>
+                        @endif
                         @if($office['can_submit'])
                             <form method="POST" action="{{ route('student.clearance.submit-office') }}" class="office-request-form">
                                 @csrf
@@ -331,7 +345,7 @@
                             <div class="office-detail-locked"><i class="bi bi-lock"></i><span>Complete the required clearance steps before submitting to this office.</span></div>
                         @endif
 
-                        @if($office['status'] !== 'Not Requested')
+                        @if($office['status'] !== 'Not Requested' && (! ($office['evaluation_required'] ?? false) || $office['evaluation_completed']))
                             <form method="POST" action="{{ route('student.clearance.upload-office') }}" enctype="multipart/form-data" class="office-upload-form">
                                 @csrf
                                 <input type="hidden" name="office_role" value="{{ $office['key'] }}">

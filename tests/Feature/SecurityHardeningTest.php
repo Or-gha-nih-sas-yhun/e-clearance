@@ -214,7 +214,8 @@ class SecurityHardeningTest extends TestCase
         $this->actingAs($registrar, 'registrar')
             ->get(route('registrar.qr-scanner'))
             ->assertOk()
-            ->assertSee('/^\\/clearance\\/verify\\/[A-Za-z0-9]{64}$/', false)
+            ->assertSee('verificationPathPrefix', false)
+            ->assertSee('/^[A-Za-z0-9]{64}$/', false)
             ->assertDontSee("url.pathname.includes('/registrar/clearance/verify/')", false);
     }
 

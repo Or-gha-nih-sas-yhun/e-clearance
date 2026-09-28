@@ -125,7 +125,7 @@
                 @csrf
                 {{-- Same form fields as original students.php --}}
                 <div class="form-row">
-                    <div class="fg"><label>Student ID</label><input name="student_id" required autocomplete="off"></div>
+                    <div class="fg"><label>Student ID</label><input name="student_id" required maxlength="9" inputmode="numeric" pattern="\d{4}-\d{4}" title="Format: 2000-1234" placeholder="2000-1234" autocomplete="off"></div>
                     <div class="fg"><label>Email *</label><input type="email" name="email" required autocomplete="off"></div>
                 </div>
                 <div class="form-row">

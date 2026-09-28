@@ -11,6 +11,8 @@ use App\Http\Controllers\Student\AuthController as StudentAuthController;
 use App\Http\Controllers\Student\ChatSupportController;
 use App\Http\Controllers\Student\ClearanceUpdatesController;
 use App\Http\Controllers\Student\DashboardController as StudentDashboardController;
+use App\Http\Controllers\Student\GuidanceEvaluationController as StudentGuidanceEvaluationController;
+use App\Http\Controllers\Student\LibraryEvaluationController as StudentLibraryEvaluationController;
 use App\Http\Controllers\Student\RegistrationController as StudentRegistrationController;
 use App\Http\Controllers\Student\SubjectEnrollmentController;
 use App\Http\Controllers\Student\SubmissionRemarkController;
@@ -26,7 +28,7 @@ Route::prefix('student')->name('student.')->group(function () {
         return redirect()->route('student.login');
     });
     Route::get('login', [StudentAuthController::class, 'showLogin'])->name('login');
-    Route::post('login', [StudentAuthController::class, 'login'])->middleware('throttle:login')->name('login.submit');
+    Route::post('login', [StudentAuthController::class, 'login'])->middleware(['throttle:login', 'recaptcha:login'])->name('login.submit');
     Route::post('login-code', [StudentAuthController::class, 'verifyLoginCode'])
         ->middleware('throttle:otp-verify')->name('login.otp.verify');
     Route::post('login-code/resend', [StudentAuthController::class, 'resendLoginCode'])
@@ -58,6 +60,10 @@ Route::prefix('student')->name('student.')->group(function () {
         Route::get('clearance-form', [ClearanceFormController::class, 'student'])->name('clearance.form');
         Route::get('clearance-form/download', [ClearanceFormController::class, 'studentDownload'])->name('clearance.form.download');
         Route::get('clearance-updates', [ClearanceUpdatesController::class, 'index'])->name('clearance-updates');
+        Route::get('library-evaluation', [StudentLibraryEvaluationController::class, 'index'])->name('library-evaluation.index');
+        Route::post('library-evaluation', [StudentLibraryEvaluationController::class, 'store'])->name('library-evaluation.store');
+        Route::get('guidance-evaluation', [StudentGuidanceEvaluationController::class, 'index'])->name('guidance-evaluation.index');
+        Route::post('guidance-evaluation', [StudentGuidanceEvaluationController::class, 'store'])->name('guidance-evaluation.store');
         // Irregular students declare their own subjects and instructors.
         Route::get('my-subjects', [SubjectEnrollmentController::class, 'index'])->name('subjects.index');
         Route::post('my-subjects', [SubjectEnrollmentController::class, 'store'])->name('subjects.store');
@@ -87,7 +93,7 @@ Route::prefix('registrar')->name('registrar.')->group(function () {
         return redirect()->route('registrar.login');
     });
     Route::get('login', [RegistrarAuthController::class, 'showLogin'])->name('login');
-    Route::post('login', [RegistrarAuthController::class, 'login'])->middleware('throttle:login')->name('login.submit');
+    Route::post('login', [RegistrarAuthController::class, 'login'])->middleware(['throttle:login', 'recaptcha:login'])->name('login.submit');
     Route::post('login-code', [RegistrarAuthController::class, 'verifyLoginCode'])
         ->middleware('throttle:otp-verify')->name('login.otp.verify');
     Route::post('login-code/resend', [RegistrarAuthController::class, 'resendLoginCode'])

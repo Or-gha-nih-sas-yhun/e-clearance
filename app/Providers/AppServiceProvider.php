@@ -58,6 +58,16 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
+        RateLimiter::for('web', function (Request $request) {
+            $actor = AuditLogger::currentActor();
+            $identity = $actor
+                ? $actor['guard'].'|'.$actor['actor']->getAuthIdentifier()
+                : 'anonymous|'.$request->ip();
+
+            return Limit::perMinute(max(1, (int) config('security.web_rate_limit', 100)))
+                ->by('web|'.$identity);
+        });
+
         RateLimiter::for('otp-send', fn (Request $request) => [
             Limit::perMinute(3)->by(Str::lower((string) $request->input('email')).'|'.$request->ip()),
             Limit::perHour(10)->by('otp-send|'.$request->ip()),

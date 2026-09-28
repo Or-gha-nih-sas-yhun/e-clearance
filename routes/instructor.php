@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Route;
 // the unprefixed "dashboard" route and incorrectly lands in the Main Admin portal.
 Route::prefix('instructor')->name('instructor.')->group(function () {
     Route::get('login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('login', [AuthController::class, 'login'])->middleware('throttle:login')->name('login.submit');
+    Route::post('login', [AuthController::class, 'login'])->middleware(['throttle:login', 'recaptcha:login'])->name('login.submit');
     Route::post('login-code', [AuthController::class, 'verifyLoginCode'])
         ->middleware('throttle:otp-verify')->name('login.otp.verify');
     Route::post('login-code/resend', [AuthController::class, 'resendLoginCode'])

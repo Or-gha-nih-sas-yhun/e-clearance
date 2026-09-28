@@ -300,6 +300,16 @@
         <div class="nav-section">Menu</div>
         <div class="sidebar-nav-links">
             @yield('nav')
+            @if($routePrefix === 'office' && \App\Support\LibraryEvaluation::canManage(Auth::guard('office')->user()))
+                <a class="nav-link {{ request()->routeIs('office.library-evaluations.*') ? 'active' : '' }}" href="{{ route('office.library-evaluations.index') }}"><i class="bi bi-ui-checks me-2"></i> Library Evaluation</a>
+            @endif
+            @if($routePrefix === 'office' && \App\Support\LibraryEvaluation::canManage(Auth::guard('office')->user(), 'guidance'))
+                <a class="nav-link {{ request()->routeIs('office.guidance-evaluations.*') ? 'active' : '' }}" href="{{ route('office.guidance-evaluations.index') }}"><i class="bi bi-ui-checks me-2"></i> Guidance Evaluation</a>
+            @endif
+            @if($routePrefix === 'student')
+                <a class="nav-link {{ request()->routeIs('student.library-evaluation.*') ? 'active' : '' }}" href="{{ route('student.library-evaluation.index') }}"><i class="bi bi-ui-checks me-2"></i> Library Evaluation</a>
+                <a class="nav-link {{ request()->routeIs('student.guidance-evaluation.*') ? 'active' : '' }}" href="{{ route('student.guidance-evaluation.index') }}"><i class="bi bi-ui-checks me-2"></i> Guidance Evaluation</a>
+            @endif
             @if($routePrefix === 'student' && ! $isStudentAndroidApp)
                 <a class="nav-link" href="{{ route('student.application.download') }}">
                     <i class="bi bi-android2"></i> Download Application
@@ -408,12 +418,14 @@
                 $portalPageMeta = match (true) {
                     request()->routeIs('student.dashboard') => ['eyebrow' => 'Clearance Overview', 'icon' => 'bi bi-clipboard2-check-fill', 'description' => 'Track your clearance progress, outstanding requirements, and completed approvals.'],
                     request()->routeIs('student.clearance-updates') => ['eyebrow' => 'Clearance Activity', 'icon' => 'bi bi-arrow-repeat', 'description' => 'Follow every clearance step and see which offices or instructors still require action.'],
+                    request()->routeIs('student.library-evaluation.*') => ['eyebrow' => 'Library Services', 'icon' => 'bi bi-ui-checks', 'description' => 'Rate your library experience to complete the evaluation required for library clearance.'],
                     request()->routeIs('student.submission-remark') => ['eyebrow' => 'Requirements Center', 'icon' => 'bi bi-file-earmark-arrow-up-fill', 'description' => 'Upload required documents and review feedback from your clearance reviewers.'],
                     request()->routeIs('student.chat-support') => ['eyebrow' => 'Student Support', 'icon' => 'bi bi-chat-square-text-fill', 'description' => 'Message your instructors, offices, treasurers, and the registrar about clearance concerns.'],
                     request()->routeIs('office.chat'), request()->routeIs('treasurer.chat'), request()->routeIs('registrar.chat') => ['eyebrow' => 'Student Messages', 'icon' => 'bi bi-chat-square-text-fill', 'description' => 'Answer student questions and follow up on outstanding clearance requirements.'],
                     request()->routeIs('office.dashboard') => ['eyebrow' => 'Office Overview', 'icon' => 'bi bi-building-check', 'description' => 'Review student requests, check submissions, and keep office clearance decisions moving.'],
                     request()->routeIs('office.submissions') => ['eyebrow' => 'Document Review', 'icon' => 'bi bi-folder2-open', 'description' => 'Inspect uploaded requirements, record remarks, and complete document reviews.'],
                     request()->routeIs('office.clearance.requests') => ['eyebrow' => 'Clearance Review', 'icon' => 'bi bi-clipboard2-check-fill', 'description' => 'Evaluate student clearance requests and record the appropriate office decision.'],
+                    request()->routeIs('office.library-evaluations.*') => ['eyebrow' => 'Library Services', 'icon' => 'bi bi-ui-checks', 'description' => 'Manage the library evaluation and review student responses for clearance.'],
                     request()->routeIs('treasurer.dashboard') => ['eyebrow' => 'Financial Overview', 'icon' => 'bi bi-bank2', 'description' => 'Monitor financial clearance cases, supporting documents, and outstanding balances.'],
                     request()->routeIs('treasurer.clearance-updates') => ['eyebrow' => 'Financial Review', 'icon' => 'bi bi-cash-coin', 'description' => 'Review student financial clearance records and update their current status.'],
                     request()->routeIs('treasurer.submission-remark') => ['eyebrow' => 'Requirements Review', 'icon' => 'bi bi-file-earmark-check-fill', 'description' => 'Inspect submitted financial documents and record review remarks.'],

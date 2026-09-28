@@ -34,8 +34,10 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 *.sql
+!/database/sql/library_evaluations.sql
 *.tmp
 /storage/framework/backup-temp
 /route-list.json
+/recaptcha_online
 /routes.txt
 /storage/bulk-test.xml

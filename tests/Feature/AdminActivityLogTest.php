@@ -138,6 +138,29 @@ class AdminActivityLogTest extends TestCase
         $this->assertSame(1, count($this->events($admin, ['search' => '192.168.1.4'])));
     }
 
+    public function test_activity_page_shows_browser_location_when_it_was_shared(): void
+    {
+        DB::table('security_audit_logs')->insert([
+            'event' => 'authentication.login',
+            'actor_guard' => 'student',
+            'actor_id' => '2023-0001',
+            'metadata' => json_encode(['location' => [
+                'latitude' => 11.26654,
+                'longitude' => 123.73321,
+                'accuracy_meters' => 42,
+            ]]),
+            'user_agent' => self::CHROME,
+            'ip_address' => '10.0.0.5',
+            'created_at' => Carbon::now()->toDateTimeString(),
+        ]);
+
+        $this->actingAs($this->admin(), 'admin')->get(route('activity.index'))
+            ->assertOk()
+            ->assertSee('11.26654, 123.73321')
+            ->assertSee('Within 42 m')
+            ->assertSee('https://www.openstreetmap.org/', false);
+    }
+
     public function test_metric_cards_are_styled_by_the_shared_admin_stylesheet(): void
     {
         // These rules used to sit only in dashboard.blade.php's @push('styles'), so any

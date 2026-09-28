@@ -36,6 +36,8 @@ final class RecordPurge
         'student_submissions',
         'instructor_remarks',
         'irregular_enrollment',
+        'library_evaluation_responses',
+        'guidance_evaluation_responses',
         'password_resets',
     ];
 
