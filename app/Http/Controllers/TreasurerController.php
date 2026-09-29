@@ -61,9 +61,20 @@ class TreasurerController extends Controller
             'department' => 'nullable|required_if:treasurer_type,department|in:BSIT,BSED,BEED,BSBA,BSHM',
             'program' => 'nullable|required_if:treasurer_type,section|in:BSIT,BSBA,BSHM,BSED,BEED',
             'year_level' => 'nullable|required_if:treasurer_type,section|integer|in:1,2,3,4',
-            'section' => 'nullable|required_if:treasurer_type,section|string|max:50',
+            'section' => [
+                'nullable',
+                'required_if:treasurer_type,section',
+                'string',
+                'max:50',
+                ...($request->input('treasurer_type') === 'section' ? [
+                    Rule::exists('program_sections', 'section')->where(fn ($query) => $query
+                        ->where('program', $request->input('program'))
+                        ->where('year_level', $request->input('year_level'))),
+                ] : []),
+            ],
         ], [
             'email.unique' => 'This email address is already in use.',
+            'section.exists' => 'Select a section configured for the chosen program and year level.',
             ...PersonName::messages('firstname', 'middlename', 'lastname'),
         ]);
 
@@ -90,9 +101,20 @@ class TreasurerController extends Controller
             'department' => 'nullable|required_if:treasurer_type,department|in:BSIT,BSED,BEED,BSBA,BSHM',
             'program' => 'nullable|required_if:treasurer_type,section|in:BSIT,BSBA,BSHM,BSED,BEED',
             'year_level' => 'nullable|required_if:treasurer_type,section|integer|in:1,2,3,4',
-            'section' => 'nullable|required_if:treasurer_type,section|string|max:50',
+            'section' => [
+                'nullable',
+                'required_if:treasurer_type,section',
+                'string',
+                'max:50',
+                ...($request->input('treasurer_type') === 'section' ? [
+                    Rule::exists('program_sections', 'section')->where(fn ($query) => $query
+                        ->where('program', $request->input('program'))
+                        ->where('year_level', $request->input('year_level'))),
+                ] : []),
+            ],
         ], [
             'email.unique' => 'This email address is already in use.',
+            'section.exists' => 'Select a section configured for the chosen program and year level.',
             ...PersonName::messages('firstname', 'middlename', 'lastname'),
         ]);
 

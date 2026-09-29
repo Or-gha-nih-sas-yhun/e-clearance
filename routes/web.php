@@ -32,6 +32,7 @@ use Illuminate\Support\Facades\Route;
 
 // Public portal directory and system landing page
 Route::view('/', 'landing')->name('landing');
+Route::view('/privacy-policy', 'privacy-policy')->name('privacy-policy');
 Route::get('/auth/captcha/{portal}', LoginCaptchaController::class)
     ->whereIn('portal', ['main-admin', 'student', 'instructor', 'office', 'treasurer', 'registrar'])
     ->middleware('throttle:30,1')

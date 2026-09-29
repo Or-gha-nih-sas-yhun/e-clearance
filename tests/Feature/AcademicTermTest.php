@@ -86,7 +86,7 @@ class AcademicTermTest extends TestCase
         // The dropdown is built client-side from this blob, so the semester has
         // to be on it and the active one has to be named.
         $this->assertStringContainsString('const activeSemester = "1st Semester"', $content);
-        $this->assertStringContainsString('1st Semester subjects', $content);
+        $this->assertStringContainsString('1st Semester subjects; codes marked BRIDGING are optional for students', $content);
     }
 
     public function test_assigning_a_subject_from_another_semester_is_refused(): void
@@ -119,6 +119,35 @@ class AcademicTermTest extends TestCase
         $this->section('BSIT', '1', 'A');
 
         $this->setTerm('1st Semester');
+
+        $this->actingAs($this->admin(), 'admin')
+            ->post(route('assignments.store'), [
+                'instructor_id' => 'INS-1',
+                'subject_id' => $subject,
+                'program' => 'BSIT',
+                'year_level' => 1,
+                'sections' => ['A'],
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('instructor_assignment', [
+            'instructor_id' => 'INS-1', 'subject_id' => $subject, 'section' => 'A',
+        ]);
+    }
+
+    public function test_a_bridging_subject_can_be_assigned_during_any_active_semester(): void
+    {
+        $this->instructor('INS-1');
+        $subject = $this->subject('BRI101', 'Bridging');
+        $this->section('BSIT', '1', 'A');
+        $this->setTerm('1st Semester');
+
+        $page = $this->actingAs($this->admin(), 'admin')
+            ->get(route('assignments.index', ['department' => 'BSIT', 'instructor' => 'INS-1']))
+            ->assertOk()
+            ->assertSee('codes marked BRIDGING are optional for students')
+            ->getContent();
+        $this->assertStringContainsString("subject.semester === 'Bridging'", $page);
 
         $this->actingAs($this->admin(), 'admin')
             ->post(route('assignments.store'), [

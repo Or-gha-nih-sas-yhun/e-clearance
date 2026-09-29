@@ -77,7 +77,9 @@ abstract class StaffChatController extends Controller
         return response()->json($this->thread->messages(
             $this->viewer($staff),
             ['role' => 'student', 'id' => (string) $student->student_id],
-            (int) $request->query('since', 0),
+            $request->boolean('sync') ? 0 : (int) $request->query('since', 0),
+            100,
+            $request->boolean('sync'),
         ));
     }
 
@@ -99,6 +101,15 @@ abstract class StaffChatController extends Controller
         );
 
         return response()->json(['success' => true, 'id' => $message->id]);
+    }
+
+    public function destroy(int $message): JsonResponse
+    {
+        $staff = $this->staff();
+
+        abort_unless($this->thread->delete($this->viewer($staff), $message), 404);
+
+        return response()->json(['success' => true]);
     }
 
     /** Aborts unless the directory says this staff account may message the student. */

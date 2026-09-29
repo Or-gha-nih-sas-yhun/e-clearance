@@ -135,6 +135,31 @@ class PortalNotificationDeliveryTest extends TestCase
         $this->assertNotContains('Instructor only', array_column($response->json('notifications'), 'message'));
     }
 
+    public function test_student_notifications_are_shown_in_the_header_overlay_instead_of_the_dashboard(): void
+    {
+        $student = $this->account('student', '2026-0001');
+
+        Notification::create([
+            'user_id' => $student->student_id,
+            'recipient_role' => 'student',
+            'message' => 'Header notification only',
+        ]);
+
+        $dashboard = $this->actingAs($student, 'student')
+            ->get(route('student.dashboard'))
+            ->assertOk()
+            ->assertSee('id="notifPanel"', false)
+            ->assertSee('id="notifList"', false)
+            ->assertDontSee('Recent updates')
+            ->assertDontSee('Header notification only');
+
+        $dashboard->assertSee('Overall progress')->assertDontSee('Needs action');
+
+        $this->getJson(route('notifications.api', ['guard' => 'student']))
+            ->assertOk()
+            ->assertJsonPath('notifications.0.message', 'Header notification only');
+    }
+
     public function test_every_holder_of_an_office_is_notified_not_just_the_first(): void
     {
         $student = $this->account('student', '2026-0001');

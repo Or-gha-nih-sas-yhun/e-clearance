@@ -205,12 +205,11 @@ function closeAdminOverlays() {
 function openCsvModal(type = '') {
     const modal = document.getElementById('csvImportModal');
     const select = document.getElementById('csvImportTypeSelect');
-    const hidden = document.getElementById('csvImportType');
-    if (!modal || !select || !hidden) return;
+    if (!modal || !select) return;
     if (type) {
         select.value = type;
-        hidden.value = type;
     }
+    setCsvType(select.value);
     modal.classList.add('show');
 }
 
@@ -223,6 +222,51 @@ function closeCsvModal() {
 function setCsvType(value) {
     const hidden = document.getElementById('csvImportType');
     if (hidden) hidden.value = value;
+    const required = document.getElementById('csvRequiredHeaders');
+    const optional = document.getElementById('csvOptionalHeaders');
+    if (!required || !optional) return;
+    const headers = {
+        students: {
+            required: 'student_id, firstname, lastname, email, password, program, year_level, section',
+            optional: 'middlename, suffix, student_type',
+        },
+        student_registry: {
+            required: 'student_id, ms_account',
+            optional: 'status (defaults to inactive)',
+        },
+        instructors: {
+            required: 'instructor_id, firstname, lastname, email, password, department',
+            optional: 'middlename, suffix, employment_status',
+        },
+        admin_personnel: {
+            required: 'firstname, lastname, email, password, role',
+            optional: 'office',
+        },
+        registrar: {
+            required: 'firstname, lastname, email, password',
+            optional: '',
+        },
+        subject_codes: {
+            required: 'subject_code, subject_description, year_level, program, semester',
+            optional: '',
+        },
+        sections: {
+            required: 'program, section, and either year_level or year_levels',
+            optional: '',
+        },
+        assignments: {
+            required: 'instructor_id, subject_id, program, year_level, section',
+            optional: '',
+        },
+        treasurers: {
+            required: 'firstname, lastname, email, password, treasurer_type',
+            optional: 'middlename, suffix, department, program, year_level, section',
+        },
+    };
+    const selected = headers[value];
+    required.textContent = selected?.required || 'Select an import type to display its required headers.';
+    optional.textContent = selected?.optional ? `Optional headers: ${selected.optional}` : '';
+    optional.style.display = selected?.optional ? 'block' : 'none';
 }
 
 

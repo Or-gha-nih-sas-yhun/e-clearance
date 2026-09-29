@@ -98,6 +98,42 @@
         body.pdf-document .bottom-sig,
         body.pdf-document .status-banner,
         body.pdf-document .footer { page-break-inside: avoid; }
+        @media screen and (max-width: 600px) {
+            body.embedded { padding: 6px; font-size: 10px; }
+            body.embedded .paper { width: 100%; padding: 14px 11px; border-color: #cbd5e1; border-radius: 8px; box-shadow: 0 8px 24px #0f2d4b1c; }
+            body.embedded .header { margin-bottom: 7px; padding-bottom: 6px; }
+            body.embedded .letterhead-logo { width: 52px; }
+            body.embedded .letterhead-logo img { width: 48px; }
+            body.embedded .letterhead-copy { padding: 0 5px; }
+            body.embedded .school { font-size: 11px; }
+            body.embedded .title { margin-top: 4px; font-size: 11px; letter-spacing: 1px; }
+            body.embedded .letterhead-copy div[style] { font-size: 8px !important; }
+            body.embedded .info-table { margin: 7px 0; }
+            body.embedded .info-table tr { display: grid; grid-template-columns: 76px minmax(0, 1fr); }
+            body.embedded .info-table td { width: auto !important; min-width: 0; padding: 5px 6px; overflow-wrap: anywhere; }
+            body.embedded .body-layout { display: block; margin-top: 7px; }
+            body.embedded .left-col,
+            body.embedded .right-col { width: 100%; }
+            body.embedded .left-col { border-right: 0; border-bottom: 1px solid #111; }
+            body.embedded .subject-table { table-layout: fixed; }
+            body.embedded .subject-table th,
+            body.embedded .subject-table td { padding: 5px 4px; overflow-wrap: anywhere; }
+            body.embedded .subject-table th { font-size: 8px; }
+            body.embedded .subject-table td:nth-child(1) { width: 34%; }
+            body.embedded .subject-table td:nth-child(2) { width: 24%; }
+            body.embedded .subject-table td:nth-child(3) { width: 42%; }
+            body.embedded .sig-cell { min-height: 44px; }
+            body.embedded .sig-name,
+            body.embedded .sig-pending { font-size: 8px; }
+            body.embedded .right-col-title { padding: 7px; font-size: 9px; }
+            body.embedded .office-sig-box { min-height: 66px; }
+            body.embedded .office-role { font-size: 10px; }
+            body.embedded .bottom-sig-box { min-height: 68px; }
+            body.embedded .status-banner { margin-top: 10px; padding: 7px 8px; font-size: 9px; }
+            body.embedded .qr-verification { margin-top: 11px; }
+            body.embedded .qr-verification img { width: 82px; height: 82px; }
+            body.embedded .footer { margin-top: 12px; font-size: 7.5px; }
+        }
         @page { size: A4 portrait; margin: 8mm; }
         @media print { body, body.embedded { padding: 0; background: #fff; } .toolbar { display: none !important; } .paper, body.embedded .paper { box-shadow: none; border: none; max-width: 100%; padding: 18px 24px; } }
     </style>

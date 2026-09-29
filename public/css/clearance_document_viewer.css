@@ -29,13 +29,21 @@
 body.clearance-form-viewer-open .main { overflow:hidden; }
 
 @media(max-width:600px){
-    .clearance-document-overlay{inset:67px 0 0;padding:10px}
-    .clearance-document-modal{height:calc(100vh - 87px);border-radius:17px}
+    .clearance-document-overlay{inset:67px 0 0;padding:8px}
+    .clearance-document-modal{width:100%;height:calc(100vh - 83px);height:calc(100dvh - 83px);max-height:100%;border-radius:15px}
     .clearance-document-header{min-height:62px;padding:10px 11px}
     .clearance-document-title>i{width:36px;height:36px}
+    .clearance-document-title h3{font-size:.86rem;white-space:nowrap}
     .clearance-document-title p{display:none}
+    .clearance-document-controls{gap:5px}
     .clearance-document-download,.clearance-document-print{width:38px;padding:0;font-size:0}
     .clearance-document-download i,.clearance-document-print i{font-size:.9rem}
     .clearance-document-frame-wrap{padding:8px}
     .clearance-document-loader{inset:8px}
+}
+
+@media(max-width:380px){
+    .clearance-document-title>i{display:none}
+    .clearance-document-header{gap:7px;padding-inline:9px}
+    .clearance-document-download,.clearance-document-print,.clearance-document-close{width:36px;min-height:36px}
 }

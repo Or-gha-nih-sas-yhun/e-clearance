@@ -44,6 +44,7 @@ Route::middleware(['instructor.auth', 'no.history'])->prefix('instructor')->name
     Route::get('chat', [ChatController::class, 'index'])->name('chat');
     Route::post('chat/messages', [ChatController::class, 'send'])->name('chat.send');
     Route::get('chat/messages', [ChatController::class, 'messages'])->name('chat.messages');
+    Route::delete('chat/messages/{message}', [ChatController::class, 'destroy'])->whereNumber('message')->name('chat.destroy');
 });
 
 // ── Shared e-signature endpoint (instructor, admin, registrar all use this guard-agnostic controller) ──

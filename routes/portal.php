@@ -68,6 +68,8 @@ Route::prefix('student')->name('student.')->group(function () {
         Route::get('my-subjects', [SubjectEnrollmentController::class, 'index'])->name('subjects.index');
         Route::post('my-subjects', [SubjectEnrollmentController::class, 'store'])->name('subjects.store');
         Route::delete('my-subjects', [SubjectEnrollmentController::class, 'destroy'])->name('subjects.destroy');
+        Route::post('my-subjects/bridging', [SubjectEnrollmentController::class, 'storeBridging'])->name('subjects.bridging.store');
+        Route::delete('my-subjects/bridging', [SubjectEnrollmentController::class, 'destroyBridging'])->name('subjects.bridging.destroy');
         Route::post('clearance/submit-instructor', [ClearanceUpdatesController::class, 'submitInstructor'])->name('clearance.submit-instructor');
         Route::post('clearance/submit-office', [ClearanceUpdatesController::class, 'submitOffice'])->name('clearance.submit-office');
         Route::post('clearance/upload-office', [ClearanceUpdatesController::class, 'uploadOfficeSubmission'])->middleware('throttle:uploads')->name('clearance.upload-office');
@@ -78,6 +80,7 @@ Route::prefix('student')->name('student.')->group(function () {
         Route::get('chat-support', [ChatSupportController::class, 'index'])->name('chat-support');
         Route::get('chat-support/messages', [ChatSupportController::class, 'messages'])->name('chat.messages');
         Route::post('chat-support/messages', [ChatSupportController::class, 'send'])->name('chat.send');
+        Route::delete('chat-support/messages/{message}', [ChatSupportController::class, 'destroy'])->whereNumber('message')->name('chat.destroy');
         Route::get('account/edit', [AccountController::class, 'edit'])->name('account.edit');
         Route::put('account', [AccountController::class, 'update'])->name('account.update');
     });
@@ -113,6 +116,7 @@ Route::prefix('registrar')->name('registrar.')->group(function () {
         Route::get('chat', [RegistrarChatController::class, 'index'])->name('chat');
         Route::get('chat/messages', [RegistrarChatController::class, 'messages'])->name('chat.messages');
         Route::post('chat/messages', [RegistrarChatController::class, 'send'])->name('chat.send');
+        Route::delete('chat/messages/{message}', [RegistrarChatController::class, 'destroy'])->whereNumber('message')->name('chat.destroy');
         Route::get('account/edit', [AccountController::class, 'edit'])->name('account.edit');
         Route::put('account', [AccountController::class, 'update'])->name('account.update');
     });

@@ -60,7 +60,9 @@ class ChatSupportController extends Controller
         return response()->json($this->thread->messages(
             $this->viewer($student),
             $partner,
-            (int) $request->query('since', 0),
+            $request->boolean('sync') ? 0 : (int) $request->query('since', 0),
+            100,
+            $request->boolean('sync'),
         ));
     }
 
@@ -83,6 +85,15 @@ class ChatSupportController extends Controller
         );
 
         return response()->json(['success' => true, 'id' => $message->id]);
+    }
+
+    public function destroy(int $message): JsonResponse
+    {
+        $student = $this->student();
+
+        abort_unless($this->thread->delete($this->viewer($student), $message), 404);
+
+        return response()->json(['success' => true]);
     }
 
     /**

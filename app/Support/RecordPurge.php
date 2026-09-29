@@ -36,6 +36,7 @@ final class RecordPurge
         'student_submissions',
         'instructor_remarks',
         'irregular_enrollment',
+        'bridging_enrollment',
         'library_evaluation_responses',
         'guidance_evaluation_responses',
         'password_resets',
@@ -48,6 +49,7 @@ final class RecordPurge
         'student_submissions',
         'instructor_remarks',
         'irregular_enrollment',
+        'bridging_enrollment',
     ];
 
     /** Tables keyed by the subject the row belongs to. */
@@ -56,6 +58,7 @@ final class RecordPurge
         'instructor_assignment',
         'instructor_remarks',
         'irregular_enrollment',
+        'bridging_enrollment',
         'student_submissions',
     ];
 
@@ -161,6 +164,12 @@ final class RecordPurge
         }
     }
 
+    /** Everything owned by one optional bridging-subject enrolment. */
+    public static function bridgingEnrollment(string $studentId, int $subjectId, string $instructorId): void
+    {
+        self::purgeSubjectEnrollment($studentId, $subjectId, $instructorId, 'bridging_enrollment');
+    }
+
     public static function instructorAssignment(object $assignment): void
     {
         if (! Schema::hasTable('student_account')) {
@@ -177,7 +186,7 @@ final class RecordPurge
             return;
         }
 
-        foreach (['clearance_status', 'instructor_remarks', 'irregular_enrollment', 'student_submissions'] as $table) {
+        foreach (['clearance_status', 'instructor_remarks', 'irregular_enrollment', 'bridging_enrollment', 'student_submissions'] as $table) {
             if (! Schema::hasTable($table)) {
                 continue;
             }
@@ -186,6 +195,28 @@ final class RecordPurge
                 ->where('instructor_id', $assignment->instructor_id ?? null)
                 ->where('subject_id', $assignment->subject_id ?? null)
                 ->whereIn('student_id', $studentIds);
+
+            if ($table === 'student_submissions' && Schema::hasColumn($table, 'file_path')) {
+                foreach ($scope()->pluck('file_path') as $path) {
+                    SecureUpload::delete($path);
+                }
+            }
+
+            $scope()->delete();
+        }
+    }
+
+    private static function purgeSubjectEnrollment(string $studentId, int $subjectId, string $instructorId, string $enrollmentTable): void
+    {
+        foreach (['clearance_status', 'instructor_remarks', 'student_submissions', $enrollmentTable] as $table) {
+            if (! Schema::hasTable($table)) {
+                continue;
+            }
+
+            $scope = fn () => DB::table($table)
+                ->where('student_id', $studentId)
+                ->where('subject_id', $subjectId)
+                ->where('instructor_id', $instructorId);
 
             if ($table === 'student_submissions' && Schema::hasColumn($table, 'file_path')) {
                 foreach ($scope()->pluck('file_path') as $path) {

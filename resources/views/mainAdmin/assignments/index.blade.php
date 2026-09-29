@@ -115,7 +115,7 @@
                         </select>
                     </div>
                 </div>
-                <div class="fg"><label>Subject <small class="text-muted">{{ $activeSemester ? '(only '.$activeSemester.' subjects for that program and year)' : '(only subjects set up for that program and year)' }}</small></label>
+                <div class="fg"><label>Subject <small class="text-muted">{{ $activeSemester ? '('.$activeSemester.' subjects; codes marked BRIDGING are optional for students)' : '(codes marked BRIDGING are optional for students)' }}</small></label>
                     <select name="subject_id" id="add_subject" required>
                         <option value="">Select program and year first</option>
                     </select>
@@ -345,6 +345,11 @@ function assignmentFormIds(formType) {
         : { program: 'e_program', year: 'e_year_level', subject: 'e_subject', sections: 'e_sections' };
 }
 
+function isBridgingSubject(subject) {
+    return subject.semester === 'Bridging'
+        || String(subject.subject_code || '').toLowerCase().includes('bridging');
+}
+
 // Mirrors InstructorAssignmentController::ensureSubjectScope() — a subject is
 // offered only where it is configured, so the form cannot build a combination
 // the server would refuse.
@@ -360,14 +365,14 @@ function filterAssignmentSubjects(formType, selectedSubject = '') {
         return;
     }
 
-    // Only the active semester's subjects can be assigned. The one an existing
-    // assignment already uses stays listed even if it is from another semester,
-    // so editing that row is not a dead end.
+    // The active semester and Bridging subjects can be assigned. The one an
+    // existing assignment already uses stays listed while editing.
     const matching = assignmentSubjects.filter(subject =>
         String(subject.year_level) === String(yearLevel)
         && String(subject.program || '').split(',').map(part => part.trim()).includes(program)
         && (!activeSemester
             || subject.semester === activeSemester
+            || subject.semester === 'Bridging'
             || String(subject.subject_id) === String(selectedSubject)));
 
     select.innerHTML = matching.length
@@ -377,7 +382,9 @@ function filterAssignmentSubjects(formType, selectedSubject = '') {
     matching.forEach(subject => {
         const option = document.createElement('option');
         option.value = subject.subject_id;
-        option.textContent = activeSemester && subject.semester !== activeSemester
+        option.textContent = isBridgingSubject(subject)
+            ? `${subject.subject_code} — ${subject.subject_description} (Bridging — optional)`
+            : activeSemester && subject.semester !== activeSemester
             ? `${subject.subject_code} — ${subject.subject_description} (${subject.semester})`
             : `${subject.subject_code} — ${subject.subject_description}`;
         option.selected = String(subject.subject_id) === String(selectedSubject);

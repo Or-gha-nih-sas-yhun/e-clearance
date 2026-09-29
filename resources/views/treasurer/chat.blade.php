@@ -26,6 +26,7 @@
     :contacts="$contacts"
     :messages-url="route('treasurer.chat.messages')"
     :send-url="route('treasurer.chat.send')"
+    :delete-url="route('treasurer.chat.destroy', ['message' => '__MESSAGE__'])"
     :heading="$heading"
     :subheading="$subheading"
     :context-icon="$contextIcon"

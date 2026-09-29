@@ -1257,6 +1257,23 @@
     padding: 10px;
 }
 
+.student-clearance-section .office-card-statuses {
+    display: grid;
+    min-width: 0;
+    flex: 0 0 auto;
+    gap: 4px;
+    justify-items: end;
+}
+
+.student-clearance-section .office-card-evaluation-status {
+    max-width: 100%;
+    gap: 4px;
+}
+
+.student-clearance-section .office-card-evaluation-status i {
+    flex: 0 0 auto;
+}
+
 .student-clearance-section .office-clearance-card {
     display: grid;
     min-height: 0;
@@ -1410,6 +1427,249 @@
     }
 
     .student-clearance-section .office-card-approver {
+        display: none;
+    }
+
+    .student-clearance-section .office-card-statuses {
+        justify-items: start;
+    }
+}
+
+/* Phone layout used by mobile browsers and the student Android application. */
+@media (max-width: 720px) {
+    .student-clearance-workspace {
+        gap: 12px;
+    }
+
+    .student-section-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 9px;
+        padding: 12px;
+    }
+
+    .student-section-title {
+        width: 100%;
+    }
+
+    .student-section-title p {
+        display: block;
+        margin-top: 3px;
+        font-size: .62rem;
+        line-height: 1.4;
+    }
+
+    .student-section-count {
+        align-self: flex-start;
+    }
+
+    .student-instructor-grid,
+    .student-clearance-section .office-card-grid {
+        gap: 9px;
+        padding: 9px;
+    }
+
+    .student-instructor-card {
+        display: flex;
+        align-items: stretch;
+        flex-direction: column;
+        gap: 10px;
+        padding: 12px;
+    }
+
+    .student-instructor-head,
+    .student-instructor-meta,
+    .student-instructor-remark,
+    .student-instructor-actions {
+        width: 100%;
+    }
+
+    .student-instructor-meta {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        padding-top: 9px;
+    }
+
+    .student-instructor-meta > div {
+        min-width: 0;
+        padding: 8px;
+        border: 1px solid rgba(176, 205, 225, .42);
+        border-radius: 9px;
+        background: rgba(245, 251, 255, .52);
+    }
+
+    .student-instructor-meta strong {
+        overflow-wrap: anywhere;
+    }
+
+    .student-instructor-remark,
+    .student-instructor-remark.needs-attention {
+        display: block;
+        min-height: 0;
+        padding: 8px 9px;
+        border: 1px solid rgba(177, 205, 225, .48);
+        border-radius: 9px;
+        background: rgba(245, 251, 255, .52);
+    }
+
+    .student-instructor-remark p {
+        display: block;
+        margin-top: 3px;
+        overflow: visible;
+        font-size: .64rem;
+        white-space: normal;
+        text-overflow: clip;
+        -webkit-line-clamp: unset;
+    }
+
+    .student-instructor-actions {
+        padding-top: 9px;
+        border-top: 1px solid rgba(176, 205, 225, .42);
+    }
+
+    .student-instructor-actions form,
+    .student-clearance-action,
+    .student-clearance-action.is-complete,
+    .student-clearance-action.is-waiting {
+        width: 100%;
+        margin: 0;
+    }
+
+    .student-clearance-action {
+        min-height: 38px;
+        padding: 8px 11px;
+        font-size: .65rem;
+    }
+
+    .student-clearance-section .office-clearance-card {
+        display: flex;
+        min-height: 0;
+        align-items: stretch;
+        flex-direction: column;
+        gap: 9px;
+        padding: 12px;
+        text-align: left;
+    }
+
+    .student-clearance-section .office-card-head,
+    .student-clearance-section .office-card-meta {
+        display: flex;
+        width: 100%;
+    }
+
+    .student-clearance-section .office-card-head {
+        align-items: center;
+    }
+
+    .student-clearance-section .office-card-meta {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 9px;
+        padding-top: 9px;
+        border-top: 1px solid rgba(176, 205, 225, .38);
+    }
+
+    .student-clearance-section .office-card-approver {
+        display: flex;
+        width: 100%;
+    }
+
+    .student-clearance-section .office-card-approver strong {
+        overflow-wrap: anywhere;
+    }
+
+    .student-clearance-section .office-card-statuses {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+
+    .student-clearance-section .office-card-status {
+        min-width: 0;
+        font-size: .58rem;
+    }
+
+    .student-clearance-section .office-card-foot {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-top: 1px;
+        padding-top: 9px;
+        border-top: 1px solid rgba(176, 205, 225, .38);
+        color: #247ab5;
+    }
+
+    .student-clearance-section .office-card-foot span {
+        display: inline;
+        font-size: .6rem;
+        font-weight: 800;
+    }
+
+    .office-detail-overlay {
+        inset: 67px 0 0;
+        padding: 8px;
+    }
+
+    .office-detail-modal {
+        display: flex;
+        width: 100%;
+        height: calc(100vh - 83px);
+        height: calc(100dvh - 83px);
+        max-height: calc(100vh - 83px);
+        max-height: calc(100dvh - 83px);
+        flex-direction: column;
+        border-radius: 15px;
+    }
+
+    .office-detail-header {
+        padding: 12px;
+    }
+
+    .office-detail-body {
+        min-height: 0;
+        flex: 1;
+        max-height: none;
+        padding: 12px;
+        overflow-y: auto;
+    }
+
+    .office-detail-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .office-detail-field.full {
+        grid-column: auto;
+    }
+
+    .office-submission-file {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .office-file-link {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 420px) {
+    .student-instructor-meta {
+        grid-template-columns: 1fr;
+    }
+
+    .student-subject-identity {
+        min-width: 0;
+    }
+
+    .student-status-pill {
+        flex: 0 0 auto;
+    }
+
+    .office-detail-heading p {
         display: none;
     }
 }

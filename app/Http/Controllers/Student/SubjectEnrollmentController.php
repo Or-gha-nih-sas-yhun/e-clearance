@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * An irregular student's own subject list.
+ * A student's optional and manually selected subjects.
  *
  * A regular student's subjects come from their section's block and nobody
  * chooses them. An irregular student is not on that block, so they declare each
@@ -24,6 +24,10 @@ use Illuminate\Validation\ValidationException;
  * The instructors offered for a subject are only those the Main Admin has
  * actually assigned to teach it, so a student can never route their clearance
  * to someone who does not teach the subject.
+ *
+ * Bridging subjects are separate from both paths. Any student can explicitly
+ * add the Bridging assignments for their section, which makes them available
+ * everywhere that reads {@see StudentSubjects}.
  */
 class SubjectEnrollmentController extends Controller
 {
@@ -31,29 +35,90 @@ class SubjectEnrollmentController extends Controller
     {
         $student = Auth::guard('student')->user();
 
-        if (! StudentSubjects::isIrregular($student)) {
-            return redirect()->route('student.clearance-updates')->with('flash', [
-                'type' => 'info',
-                'title' => 'Subjects are already set',
-                'message' => 'Your subjects come from your section, so there is nothing to choose here.',
-            ]);
-        }
-
-        if (! StudentSubjects::irregularTableAvailable()) {
-            return view('student.my-subjects', [
-                'student' => $student,
-                'available' => false,
-                'enrolled' => collect(),
-                'offered' => collect(),
-            ]);
-        }
-
         return view('student.my-subjects', [
             'student' => $student,
-            'available' => true,
-            'enrolled' => $this->enrolledRows($student->student_id),
-            'offered' => $this->offeredChoices(),
+            'irregular' => StudentSubjects::isIrregular($student),
+            'irregularAvailable' => StudentSubjects::irregularTableAvailable(),
+            'enrolled' => StudentSubjects::picksOwnSubjects($student) ? $this->enrolledRows($student->student_id) : collect(),
+            'offered' => StudentSubjects::picksOwnSubjects($student) ? $this->offeredChoices() : collect(),
+            'bridgingAvailable' => StudentSubjects::bridgingAvailable(),
+            'bridgingAssignments' => $this->bridgingRows($student),
         ]);
+    }
+
+    public function storeBridging()
+    {
+        $student = Auth::guard('student')->user();
+        abort_unless($student && StudentSubjects::bridgingAvailable(), 503);
+
+        $assignments = StudentSubjects::bridgingAssignmentsFor($student);
+        if ($assignments->isEmpty()) {
+            return back()->with('flash', [
+                'type' => 'info',
+                'message' => 'No bridging subjects are assigned to your section.',
+            ]);
+        }
+
+        $added = 0;
+        foreach ($assignments as $assignment) {
+            $added += DB::table('bridging_enrollment')->insertOrIgnore([
+                'student_id' => $student->student_id,
+                'subject_id' => $assignment->subject_id,
+                'instructor_id' => $assignment->instructor_id,
+                'enrolled_at' => now(),
+            ]);
+        }
+
+        return back()->with('flash', [
+            'type' => $added ? 'success' : 'info',
+            'message' => $added
+                ? "{$added} bridging subject".($added === 1 ? '' : 's').' added to your clearance.'
+                : 'All bridging subjects assigned to your section are already included.',
+        ]);
+    }
+
+    public function destroyBridging(Request $request)
+    {
+        $student = Auth::guard('student')->user();
+        abort_unless($student && StudentSubjects::bridgingAvailable(), 503);
+
+        $data = $request->validate([
+            'subject_id' => ['required', 'integer'],
+            'instructor_id' => ['required', 'string', 'max:50'],
+        ]);
+        $subjectId = (int) $data['subject_id'];
+        $instructorId = $data['instructor_id'];
+
+        $enrolled = DB::table('bridging_enrollment')
+            ->where('student_id', $student->student_id)
+            ->where('subject_id', $subjectId)
+            ->where('instructor_id', $instructorId)
+            ->exists();
+        if (! $enrolled) {
+            return back()->with('flash', ['type' => 'error', 'message' => 'That bridging subject is no longer on your list.']);
+        }
+
+        $approved = DB::table('clearance_status')
+            ->where('student_id', $student->student_id)
+            ->where('subject_id', $subjectId)
+            ->where('instructor_id', $instructorId)
+            ->where('status', 'Approved')
+            ->exists();
+        if ($approved) {
+            return back()->with('flash', [
+                'type' => 'error',
+                'title' => 'Already approved',
+                'message' => 'This bridging subject has already been cleared, so it cannot be removed.',
+            ]);
+        }
+
+        DB::transaction(fn () => RecordPurge::bridgingEnrollment(
+            (string) $student->student_id,
+            $subjectId,
+            $instructorId,
+        ));
+
+        return back()->with('flash', ['type' => 'success', 'message' => 'Bridging subject removed from your clearance.']);
     }
 
     public function store(Request $request)
@@ -203,5 +268,30 @@ class SubjectEnrollmentController extends Controller
             ])
             ->sortBy('subject_code')
             ->values();
+    }
+
+    private function bridgingRows(object $student)
+    {
+        $assignments = StudentSubjects::bridgingAssignmentsFor($student);
+        if ($assignments->isEmpty()) {
+            return collect();
+        }
+
+        $selected = DB::table('bridging_enrollment')
+            ->where('student_id', $student->student_id)
+            ->get(['subject_id', 'instructor_id'])
+            ->keyBy(fn ($row) => $row->subject_id.':'.$row->instructor_id);
+        $clearances = DB::table('clearance_status')
+            ->where('student_id', $student->student_id)
+            ->get(['subject_id', 'instructor_id', 'status'])
+            ->keyBy(fn ($row) => $row->subject_id.':'.$row->instructor_id);
+
+        return $assignments->map(function ($assignment) use ($selected, $clearances) {
+            $key = $assignment->subject_id.':'.$assignment->instructor_id;
+            $assignment->enrolled = $selected->has($key);
+            $assignment->clearance_status = $clearances->get($key)->status ?? null;
+
+            return $assignment;
+        });
     }
 }

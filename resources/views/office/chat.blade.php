@@ -26,6 +26,7 @@
     :contacts="$contacts"
     :messages-url="route('office.chat.messages')"
     :send-url="route('office.chat.send')"
+    :delete-url="route('office.chat.destroy', ['message' => '__MESSAGE__'])"
     :heading="$heading"
     :subheading="$subheading"
     :context-icon="$contextIcon"

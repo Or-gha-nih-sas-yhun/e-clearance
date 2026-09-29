@@ -44,6 +44,7 @@ class CrossRoleChatTest extends TestCase
             $table->string('program');
             $table->string('year_level');
             $table->string('section');
+            $table->string('student_type')->default('Regular');
         });
         Schema::create('subject_codes', function (Blueprint $table) {
             $table->bigIncrements('subject_id');
@@ -206,6 +207,50 @@ class CrossRoleChatTest extends TestCase
         ]);
     }
 
+    public function test_users_can_delete_only_messages_they_sent(): void
+    {
+        $student = $this->student();
+        $office = $this->officePersonnel('guidance');
+
+        $studentMessage = ChatMessage::create([
+            'sender_id' => $student->student_id,
+            'sender_role' => 'student',
+            'receiver_id' => $office->personnel_id,
+            'receiver_role' => 'office',
+            'message' => 'I will remove this question.',
+        ]);
+        $officeMessage = ChatMessage::create([
+            'sender_id' => $office->personnel_id,
+            'sender_role' => 'office',
+            'receiver_id' => $student->student_id,
+            'receiver_role' => 'student',
+            'message' => 'Only the office may remove this reply.',
+        ]);
+
+        $this->actingAs($student, 'student')
+            ->deleteJson(route('student.chat.destroy', $studentMessage->id))
+            ->assertOk()
+            ->assertJson(['success' => true]);
+
+        $this->assertDatabaseMissing('chat_messages', ['id' => $studentMessage->id]);
+
+        $officeThread = $this->actingAs($office, 'office')
+            ->getJson(route('office.chat.messages', ['with' => $student->student_id, 'sync' => 1]))
+            ->assertOk()
+            ->json();
+        $this->assertSame([$officeMessage->id], collect($officeThread)->pluck('id')->all());
+
+        $this->actingAs($student, 'student')
+            ->deleteJson(route('student.chat.destroy', $officeMessage->id))
+            ->assertNotFound();
+
+        $this->actingAs($office, 'office')
+            ->deleteJson(route('office.chat.destroy', $officeMessage->id))
+            ->assertOk();
+
+        $this->assertDatabaseMissing('chat_messages', ['id' => $officeMessage->id]);
+    }
+
     public function test_student_and_treasurer_of_the_same_section_can_converse(): void
     {
         $student = $this->student();
@@ -282,7 +327,7 @@ class CrossRoleChatTest extends TestCase
 
     public function test_an_irregular_student_reaches_the_instructor_enrolled_for_them(): void
     {
-        $student = $this->student();
+        $student = $this->student(['student_type' => 'Irregular']);
         // The instructor teaches a different section, so only the per-student
         // irregular enrollment can connect the two.
         $instructor = $this->instructorTeaching('BSIT', '4', 'Z', 'INS-IRREG');
@@ -364,6 +409,8 @@ class CrossRoleChatTest extends TestCase
             // page would render a messenger that never loads a thread.
             $response->assertSee('messenger.dataset.messagesUrl', false);
             $response->assertSee('data-messenger-composer', false);
+            $response->assertSee('data-delete-url', false);
+            $response->assertSee('Delete this message');
         }
     }
 

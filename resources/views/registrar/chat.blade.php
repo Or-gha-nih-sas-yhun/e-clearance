@@ -26,6 +26,7 @@
     :contacts="$contacts"
     :messages-url="route('registrar.chat.messages')"
     :send-url="route('registrar.chat.send')"
+    :delete-url="route('registrar.chat.destroy', ['message' => '__MESSAGE__'])"
     :heading="$heading"
     :subheading="$subheading"
     :context-icon="$contextIcon"

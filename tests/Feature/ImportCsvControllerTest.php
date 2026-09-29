@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Instructor;
 use App\Models\MainAdmin;
 use App\Models\Student;
+use App\Models\StudentRegistry;
 use App\Support\InstructorDepartment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -88,6 +89,44 @@ class ImportCsvControllerTest extends TestCase
             ->assertJsonValidationErrors('csv_file');
 
         $this->assertDatabaseCount('registrar', 0);
+    }
+
+    public function test_registration_import_accepts_an_excel_utf16_tab_separated_export(): void
+    {
+        $csv = "student_id\tms_account\tstatus\r\n"
+            ."2026-0042\tstudent42@mcc.edu.ph\tinactive\r\n";
+        $utf16 = "\xFF\xFE".mb_convert_encoding($csv, 'UTF-16LE', 'UTF-8');
+
+        $this->postImport('student_registry', $utf16)
+            ->assertOk()
+            ->assertJsonPath('inserted', 1)
+            ->assertJsonPath('skipped', 0);
+
+        $entry = StudentRegistry::query()->sole();
+        $this->assertSame('2026-0042', $entry->student_id);
+        $this->assertSame('student42@mcc.edu.ph', $entry->ms_account);
+    }
+
+    public function test_import_accepts_windows_encoded_spreadsheet_text(): void
+    {
+        $csv = "firstname,lastname,email,password\r\nJosé,Reyes,jose@example.test,StrongPass1!\r\n";
+        $windowsText = mb_convert_encoding($csv, 'Windows-1252', 'UTF-8');
+
+        $this->postImport('registrar', $windowsText)
+            ->assertOk()
+            ->assertJsonPath('inserted', 1);
+
+        $this->assertDatabaseHas('registrar', ['firstname' => 'José', 'email' => 'jose@example.test']);
+    }
+
+    public function test_a_renamed_excel_workbook_receives_a_specific_csv_instruction(): void
+    {
+        $this->postImport('student_registry', "PK\x03\x04".str_repeat("\x20", 32))
+            ->assertUnprocessable()
+            ->assertJsonPath(
+                'errors.csv_file.0',
+                'This is an Excel workbook, not CSV text. In Excel, use Save As and choose CSV UTF-8 (Comma delimited) (*.csv), then upload the saved CSV file.',
+            );
     }
 
     public function test_import_rejects_control_characters_and_non_csv_extensions(): void

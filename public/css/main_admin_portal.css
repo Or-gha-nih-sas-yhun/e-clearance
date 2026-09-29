@@ -636,21 +636,6 @@ body.main-admin-portal .table-pager-btn.disabled {
     cursor: default;
 }
 
-body.main-admin-portal .table-pager-links {
-    display: flex;
-    justify-content: center;
-    padding: 0 19px 16px;
-}
-
-/* The pager bar above already carries labelled Previous / Next, so the numbered
-   row keeps only the numbers: its own arrows are the first and last page-item,
-   and its mobile-only block is nothing but a second Previous / Next pair. */
-body.main-admin-portal .table-pager-links .d-sm-none,
-body.main-admin-portal .table-pager-links .pagination .page-item:first-child,
-body.main-admin-portal .table-pager-links .pagination .page-item:last-child {
-    display: none !important;
-}
-
 @media (max-width: 720px) {
     body.main-admin-portal .table-pager { justify-content: center; }
     body.main-admin-portal .table-pager-count { order: 3; width: 100%; text-align: center; }

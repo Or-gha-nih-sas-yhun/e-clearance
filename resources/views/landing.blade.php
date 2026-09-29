@@ -177,6 +177,7 @@
         <div class="footer-brand"><img src="{{ asset('images/mcc-logo.png') }}" alt=""><span><strong>MCC e-Clearance System</strong><small>Madridejos Community College</small></span></div>
         <p>&copy; {{ date('Y') }} Madridejos Community College. All rights reserved.</p>
         <div class="footer-links">
+            <a href="{{ route('privacy-policy') }}">Privacy Policy</a>
             <a href="#portals">Portal access</a>
             <a href="#home">Back to top <i class="bi bi-arrow-up"></i></a>
         </div>

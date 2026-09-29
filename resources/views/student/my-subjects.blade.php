@@ -32,10 +32,14 @@
     .subject-state { display:inline-block; padding:.25rem .65rem; border-radius:99px; font-size:.7rem; font-weight:800; }
     .subject-state.approved { background:rgba(16,185,129,.14); color:#047857; }
     .subject-state.pending { background:rgba(234,179,8,.16); color:#92400e; }
+    .subject-state.available { background:rgba(13,110,253,.12); color:#075bea; }
     .subject-state.none { background:rgba(100,116,139,.14); color:#475569; }
     .subject-empty { padding:2.4rem 1.25rem; text-align:center; color:#64748b; }
     .subject-empty i { display:block; margin-bottom:.6rem; font-size:1.8rem; opacity:.45; }
     .subject-picker { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) auto; gap:.75rem; align-items:end; }
+    .bridging-actions { display:flex; justify-content:flex-end; padding-top:.25rem; }
+    .bridging-note { display:flex; align-items:flex-start; gap:.75rem; padding:.9rem 1rem; margin-bottom:1rem; border:1px solid rgba(13,110,253,.2); border-radius:.85rem; background:rgba(13,110,253,.07); color:#45617f; font-size:.8rem; line-height:1.55; }
+    .bridging-note i { color:#0d6efd; font-size:1rem; }
     @media (max-width: 800px) { .subject-picker { grid-template-columns:1fr; } }
 </style>
 @endpush
@@ -46,7 +50,83 @@
         <div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
     @endif
 
-    @unless($available)
+    <div class="subject-panel">
+        <div class="subject-panel-head">
+            <div>
+                <h2><i class="bi bi-signpost-split"></i> Optional Bridging Subjects</h2>
+                <p>Bridging subjects assigned to your section appear here. Add them only when you are taking them this term.</p>
+            </div>
+            <span class="subject-panel-count">{{ $bridgingAssignments->where('enrolled', true)->count() }} of {{ $bridgingAssignments->count() }} added</span>
+        </div>
+
+        <div class="subject-panel-body">
+            @unless($bridgingAvailable)
+                <div class="subject-empty">
+                    <i class="bi bi-database-exclamation"></i>
+                    <strong>Bridging subject selection is not set up yet.</strong>
+                    <p class="mt-2 mb-0">Ask the administrator to run the latest database update.</p>
+                </div>
+            @else
+                @if($bridgingAssignments->isEmpty())
+                    <div class="subject-empty">
+                        <i class="bi bi-inbox"></i>
+                        <strong>No bridging subjects are assigned to your section.</strong>
+                        <p class="mt-2 mb-0">Nothing will be added to your clearance progress, submissions, or instructor chat.</p>
+                    </div>
+                @else
+                    <div class="bridging-note">
+                        <i class="bi bi-info-circle-fill"></i>
+                        <span>After you add these subjects, you can request clearance, upload files, and message their assigned instructors just like your regular subjects.</span>
+                    </div>
+
+                    @foreach($bridgingAssignments as $row)
+                        @php
+                            $status = $row->clearance_status;
+                            $state = $status === 'Approved' ? 'approved' : ($status === null ? 'none' : 'pending');
+                            $stateLabel = $status ?? 'Not submitted';
+                        @endphp
+                        <article class="subject-card">
+                            <div class="subject-card-head">
+                                <div>
+                                    <h3>{{ $row->subject_code ?? 'Subject' }} — {{ $row->subject_description }}</h3>
+                                    <p>Instructor: <strong>{{ trim(($row->instructor_firstname ?? '').' '.($row->instructor_lastname ?? '')) ?: 'Unknown' }}</strong>@if($row->semester) · {{ $row->semester }}@endif · Bridging</p>
+                                </div>
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    @if($row->enrolled)
+                                        <span class="subject-state {{ $state }}">{{ $stateLabel }}</span>
+                                        <form method="POST" action="{{ route('student.subjects.bridging.destroy') }}"
+                                              onsubmit="return confirm('Remove this bridging subject? Its clearance request, remarks, and uploaded file will also be deleted.');">
+                                            @csrf @method('DELETE')
+                                            <input type="hidden" name="subject_id" value="{{ $row->subject_id }}">
+                                            <input type="hidden" name="instructor_id" value="{{ $row->instructor_id }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" @disabled($status === 'Approved')>
+                                                <i class="bi bi-trash3"></i> Remove
+                                            </button>
+                                        </form>
+                                    @else
+                                        <span class="subject-state available">Available</span>
+                                    @endif
+                                </div>
+                            </div>
+                        </article>
+                    @endforeach
+
+                    @if($bridgingAssignments->contains(fn ($row) => ! $row->enrolled))
+                        <div class="bridging-actions">
+                            <form method="POST" action="{{ route('student.subjects.bridging.store') }}"
+                                  onsubmit="return confirm('Add the bridging subjects assigned to your section? They will appear in your clearance progress, submissions, and instructor chat.');">
+                                @csrf
+                                <button type="submit" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Add Bridging Subjects</button>
+                            </form>
+                        </div>
+                    @endif
+                @endif
+            @endunless
+        </div>
+    </div>
+
+    @if($irregular)
+    @unless($irregularAvailable)
         <div class="subject-panel">
             <div class="subject-empty">
                 <i class="bi bi-database-exclamation"></i>
@@ -148,6 +228,7 @@
             </div>
         </div>
     @endunless
+    @endif
 </div>
 @endsection
 

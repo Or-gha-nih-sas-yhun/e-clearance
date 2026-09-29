@@ -9,13 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
-/**
- * Every layout loads Bootstrap 5 and the portal CSS styles `.pagination` and
- * `.page-link`, but Laravel's paginator defaulted to its Tailwind view. With no
- * Tailwind stylesheet in the project, that view rendered both its `sm:hidden`
- * mobile block and its `hidden sm:flex` desktop block at once, and its chevron
- * `<svg class="w-5 h-5">` had no size rule, so it painted at full container width.
- */
+/** The Main Admin tables use one compact pager without a second numbered row. */
 class PaginationMarkupTest extends TestCase
 {
     protected function setUp(): void
@@ -46,7 +40,7 @@ class PaginationMarkupTest extends TestCase
         });
     }
 
-    public function test_paginated_pages_render_bootstrap_markup_not_unstyled_tailwind(): void
+    public function test_paginated_pages_render_only_the_shared_table_controls(): void
     {
         // More than one page of activity so the links actually render.
         foreach (range(1, 30) as $index) {
@@ -68,20 +62,11 @@ class PaginationMarkupTest extends TestCase
 
         $html = $this->actingAs($admin, 'admin')->get(route('activity.index'))->assertOk()->getContent();
 
-        $this->assertStringContainsString('class="pagination', $html);
-        $this->assertStringContainsString('page-link', $html);
-        $this->assertStringContainsString('page-item', $html);
-
-        // The Tailwind view's tells: unstyled utility classes and a bare chevron svg.
-        $this->assertStringNotContainsString('sm:hidden', $html);
-        $this->assertStringNotContainsString('hidden sm:flex', $html);
-        $this->assertStringNotContainsString('w-5 h-5', $html);
-
-        // Both views ship a mobile and a desktop block. The difference that matters is
-        // that these are gated by Bootstrap display utilities, which the loaded
-        // Bootstrap stylesheet honours — so only one block is ever visible, instead of
-        // the duplicated Previous/Next pair plus numbered links in the bug report.
-        $this->assertStringContainsString('flex-fill d-sm-none', $html);
-        $this->assertStringContainsString('d-none flex-sm-fill d-sm-flex', $html);
+        $this->assertStringContainsString('class="table-pager"', $html);
+        $this->assertStringContainsString('Page 1 of 3', $html);
+        $this->assertStringContainsString('Previous', $html);
+        $this->assertStringContainsString('Next', $html);
+        $this->assertStringNotContainsString('table-pager-links', $html);
+        $this->assertStringNotContainsString('class="pagination', $html);
     }
 }

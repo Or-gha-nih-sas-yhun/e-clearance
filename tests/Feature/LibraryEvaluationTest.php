@@ -212,6 +212,7 @@ class LibraryEvaluationTest extends TestCase
         $this->assertSame([], Storage::disk('local')->allFiles());
         $this->assertFalse($this->libraryItem($student)['can_submit']);
         $this->get(route('student.clearance-updates'))->assertOk()->assertSee('Answer evaluation')
+            ->assertSee('Evaluation required')
             ->assertSee('Evaluation: Not completed');
     }
 
@@ -233,7 +234,9 @@ class LibraryEvaluationTest extends TestCase
         $this->assertDatabaseCount('library_evaluation_responses', 1);
         $this->assertSame($response->ratings, LibraryEvaluation::response($id, 'S-1')->ratings);
         $this->assertTrue($this->libraryItem($student)['can_submit']);
-        $this->get(route('student.clearance-updates'))->assertOk()->assertSee('Evaluation: Completed');
+        $this->get(route('student.clearance-updates'))->assertOk()
+            ->assertSee('Evaluation completed')
+            ->assertSee('Evaluation: Completed');
         $this->get(route('student.library-evaluation.index'))->assertOk()->assertSee('Evaluation completed')->assertDontSee('Submit evaluation');
         $this->post(route('student.clearance.submit-office'), ['office_role' => 'Library'])->assertRedirect()->assertSessionHasNoErrors();
         $this->assertDatabaseHas('office_clearance_status', ['student_id' => 'S-1', 'office_role' => 'library', 'status' => 'Pending']);

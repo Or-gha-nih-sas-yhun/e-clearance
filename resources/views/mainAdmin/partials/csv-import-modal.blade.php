@@ -12,6 +12,7 @@
                     <div class="fg" style="width:100%;">
                         <label>Select CSV file</label>
                         <input type="file" name="csv_file" accept=".csv" required>
+                        <small style="display:block;margin-top:7px;color:var(--muted);">From Excel, use <strong>Save As → CSV UTF-8 (Comma delimited) (*.csv)</strong>. Do not rename an .xlsx workbook to .csv.</small>
                     </div>
                 </div>
                 <div class="form-row">
@@ -31,9 +32,13 @@
                         </select>
                     </div>
                 </div>
+                <div id="csvImportHeaderGuide" style="margin-bottom:16px;padding:13px 15px;border:1px solid rgba(30,136,229,.2);border-radius:12px;background:rgba(225,243,255,.58);">
+                    <strong style="display:block;margin-bottom:6px;color:var(--ink);font-size:13px;"><i class="bi bi-list-check" style="margin-right:6px;color:var(--accent2);"></i>Required headers</strong>
+                    <code id="csvRequiredHeaders" style="display:block;color:#185b8f;white-space:normal;overflow-wrap:anywhere;">Select an import type to display its required headers.</code>
+                    <small id="csvOptionalHeaders" style="display:none;margin-top:7px;color:var(--muted);"></small>
+                </div>
                 <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
                     <button type="submit" class="btn-save"><i class="bi bi-file-earmark-arrow-up-fill"></i> Upload CSV</button>
-                    <small style="color:var(--muted);">CSV columns must use header names: <code>student_id,email,firstname,lastname,password,etc.</code></small>
                 </div>
             </form>
         </div>

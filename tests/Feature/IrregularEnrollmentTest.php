@@ -22,13 +22,15 @@ class IrregularEnrollmentTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_a_regular_student_has_no_subject_picker(): void
+    public function test_a_regular_student_can_open_my_subjects_but_has_no_irregular_picker(): void
     {
         $student = $this->student('2026-0001', 'Regular');
 
         $this->actingAs($student, 'student')
             ->get(route('student.subjects.index'))
-            ->assertRedirect(route('student.clearance-updates'));
+            ->assertOk()
+            ->assertSee('Optional Bridging Subjects')
+            ->assertDontSee('Add a Subject');
 
         $this->actingAs($student, 'student')
             ->post(route('student.subjects.store'), ['subject_id' => 1, 'instructor_id' => 'INS-1'])

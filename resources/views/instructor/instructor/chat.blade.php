@@ -15,6 +15,7 @@
     :contacts="$contacts"
     :messages-url="route('instructor.chat.messages')"
     :send-url="route('instructor.chat.send')"
+    :delete-url="route('instructor.chat.destroy', ['message' => '__MESSAGE__'])"
     :heading="$heading"
     :subheading="$subheading"
     :context-icon="$contextIcon"

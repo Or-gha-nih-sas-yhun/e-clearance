@@ -584,6 +584,7 @@ class ImportCsvController extends Controller
     private function parseCsv(UploadedFile $file, string $type): array
     {
         $handle = @fopen($file->getRealPath(), 'rb');
+        $parseHandle = null;
         if ($handle === false) {
             throw ValidationException::withMessages([
                 'csv_file' => 'The uploaded CSV could not be opened.',
@@ -604,15 +605,32 @@ class ImportCsvController extends Controller
                 ]);
             }
 
-            if (preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', $contents) === 1
-                || preg_match('//u', $contents) !== 1) {
+            if (str_starts_with($contents, "PK\x03\x04")
+                || str_starts_with($contents, "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1")) {
                 throw ValidationException::withMessages([
-                    'csv_file' => 'The CSV must contain valid UTF-8 plain text.',
+                    'csv_file' => 'This is an Excel workbook, not CSV text. In Excel, use Save As and choose CSV UTF-8 (Comma delimited) (*.csv), then upload the saved CSV file.',
                 ]);
             }
 
-            rewind($handle);
-            $rawHeader = fgetcsv($handle, self::MAX_RECORD_BYTES, ',', '"', '');
+            $contents = $this->normalizeCsvEncoding($contents);
+
+            if (preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', $contents) === 1
+                || preg_match('//u', $contents) !== 1) {
+                throw ValidationException::withMessages([
+                    'csv_file' => 'The CSV text encoding could not be read. Save it as CSV UTF-8 (Comma delimited) and upload it again.',
+                ]);
+            }
+
+            $parseHandle = fopen('php://temp', 'w+b');
+            if ($parseHandle === false || fwrite($parseHandle, $contents) !== strlen($contents)) {
+                throw ValidationException::withMessages([
+                    'csv_file' => 'The uploaded CSV could not be prepared for reading.',
+                ]);
+            }
+
+            rewind($parseHandle);
+            $delimiter = $this->detectCsvDelimiter($contents);
+            $rawHeader = fgetcsv($parseHandle, self::MAX_RECORD_BYTES, $delimiter, '"', '');
             if ($rawHeader === false) {
                 throw ValidationException::withMessages([
                     'csv_file' => 'The CSV must contain a header row.',
@@ -634,7 +652,7 @@ class ImportCsvController extends Controller
             $skipped = 0;
             $record = 0;
 
-            while (($row = fgetcsv($handle, self::MAX_RECORD_BYTES, ',', '"', '')) !== false) {
+            while (($row = fgetcsv($parseHandle, self::MAX_RECORD_BYTES, $delimiter, '"', '')) !== false) {
                 $record++;
                 $rowNumber = $record + 1;
 
@@ -686,7 +704,7 @@ class ImportCsvController extends Controller
                 $rows[] = ['row' => $rowNumber, 'data' => $data];
             }
 
-            if (! feof($handle)) {
+            if (! feof($parseHandle)) {
                 throw ValidationException::withMessages([
                     'csv_file' => 'The CSV could not be parsed completely.',
                 ]);
@@ -694,8 +712,58 @@ class ImportCsvController extends Controller
 
             return [$rows, $errors, $skipped];
         } finally {
+            if (is_resource($parseHandle)) {
+                fclose($parseHandle);
+            }
             fclose($handle);
         }
+    }
+
+    /**
+     * Spreadsheet programs commonly export CSV as UTF-16 or the local Windows
+     * code page. Convert those text formats before applying the same control
+     * character, header, row, and field validation used for UTF-8 uploads.
+     */
+    private function normalizeCsvEncoding(string $contents): string
+    {
+        if (str_starts_with($contents, "\xEF\xBB\xBF")) {
+            return substr($contents, 3);
+        }
+
+        if (str_starts_with($contents, "\xFF\xFE")) {
+            return mb_convert_encoding(substr($contents, 2), 'UTF-8', 'UTF-16LE');
+        }
+
+        if (str_starts_with($contents, "\xFE\xFF")) {
+            return mb_convert_encoding(substr($contents, 2), 'UTF-8', 'UTF-16BE');
+        }
+
+        if (preg_match('//u', $contents) === 1) {
+            return $contents;
+        }
+
+        return mb_convert_encoding($contents, 'UTF-8', 'Windows-1252');
+    }
+
+    /** Accepts regional Excel exports while preferring a regular comma CSV. */
+    private function detectCsvDelimiter(string $contents): string
+    {
+        $firstLine = strtok($contents, "\r\n");
+        if ($firstLine === false) {
+            return ',';
+        }
+
+        $selected = ',';
+        $mostColumns = 1;
+        foreach ([',', ';', "\t"] as $candidate) {
+            $columns = count(str_getcsv($firstLine, $candidate, '"', ''));
+            if ($columns > $mostColumns) {
+                $selected = $candidate;
+                $mostColumns = $columns;
+            }
+        }
+
+        return $selected;
     }
 
     /** @param list<string> $header */

@@ -6,11 +6,13 @@ The app uses the existing responsive Laravel student portal inside a restricted 
 
 ## Included Android features
 
-- Student routes only (`/student/...`)
+- Student routes (`/student/...`) plus the public Privacy Policy
 - Account self-registration, including the emailed six-digit registration code
-- **My Subjects** for irregular students: choosing each subject and the
-  instructor who will clear it (`/student/my-subjects`), narrowed to the
-  semester the college is currently running
+- **My Subjects** for all students: assigned bridging subjects remain optional
+  until the student confirms them, while irregular students can also choose
+  their subjects and instructors for the semester the college is running
+- Required Library and Guidance evaluations, including the five-point rating
+  forms that must be completed before the related office clearance is submitted
 - The College of Education Department Head clearance step, which BSED and BEED
   students pass through after their own program head
 - The official clearance form with the college and municipality letterhead, the
@@ -20,6 +22,8 @@ The app uses the existing responsive Laravel student portal inside a restricted 
   student, a student by their year level and section
 - New-device sign-in verification (emailed six-digit code)
 - Cross-role chat support with instructors, offices, treasurers, and the registrar
+- Message deletion for a student's own chat messages
+- Header notifications, including individual notification deletion
 - Persistent Laravel login session through first-party cookies, flushed to disk
   whenever the app is backgrounded so leaving for the mail app cannot lose a
   half-finished registration
@@ -44,22 +48,22 @@ feature on the website is normally available in the app with **no Android change
 at all** — it is the same Laravel routes, session, and CSRF protection.
 
 The one thing that can block a new feature is the URL allow-list in
-`MainActivity.isAllowedStudentUrl()`. It permits only the portal's own origin
-*and* a path of `/student` or `/student/...`; any other first-party page is
-bounced back to the student login, and anything off-origin opens in the browser.
+`MainActivity.isAllowedStudentUrl()`. It permits the portal's own origin with a
+path of `/student`, `/student/...`, or the public `/privacy-policy` page. Other
+first-party pages are bounced back to the student login, and anything off-origin
+opens in the browser.
 
 So when adding a student feature to the website:
 
 - Put its routes under the `student.` prefix (`/student/...`) and it just works.
   Account registration (`/student/register...`), chat support
-  (`/student/chat-support`) and the irregular-student subject picker
-  (`/student/my-subjects`) all qualify — none of them needed an Android change.
+  (`/student/chat-support`), evaluations, optional bridging enrolment, and the
+  subject picker (`/student/my-subjects`) all qualify.
 - Subresources are unaffected — the allow-list only sees navigations. The login
   captcha `<img>` and the notification-bell `fetch()` calls live outside
   `/student/` and still work.
-- A first-party **link or form post** outside `/student/` will be hijacked to the
-  login page. The landing-page link is the only one, and the student login
-  template already hides it when the user agent contains `MCCStudentAndroid/`.
+- A first-party **link or form post** outside the permitted paths is redirected
+  to student login. The Privacy Policy is the only public-page exception.
 
 ## Online server
 

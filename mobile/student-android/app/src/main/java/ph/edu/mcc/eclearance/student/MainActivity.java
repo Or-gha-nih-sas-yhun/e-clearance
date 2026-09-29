@@ -273,8 +273,12 @@ public final class MainActivity extends Activity {
             rootPath = rootPath.substring(0, rootPath.length() - 1);
         }
         String studentPath = rootPath + "/student";
+        String privacyPolicyPath = rootPath + "/privacy-policy";
         String destinationPath = destination.getPath() == null ? "" : destination.getPath();
-        return destinationPath.equals(studentPath) || destinationPath.startsWith(studentPath + "/");
+        return destinationPath.equals(studentPath)
+            || destinationPath.startsWith(studentPath + "/")
+            || destinationPath.equals(privacyPolicyPath)
+            || destinationPath.equals(privacyPolicyPath + "/");
     }
 
     private boolean samePortalOrigin(Uri left, Uri right) {

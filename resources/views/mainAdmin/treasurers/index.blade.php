@@ -118,7 +118,7 @@
                 <div id="sectionFields" style="display:none;">
                     <div class="form-row">
                         <div class="fg"><label>Program</label>
-                            <select name="program" id="t_program">
+                            <select name="program" id="t_program" onchange="updateTreasurerSectionOptions('create')">
                                 <option value="">Select program</option>
                                 @foreach(['BSIT','BSBA','BSHM','BSED','BEED'] as $prog)
                                 <option value="{{ $prog }}">{{ $prog }}</option>
@@ -126,7 +126,7 @@
                             </select>
                         </div>
                         <div class="fg"><label>Year Level</label>
-                            <select name="year_level" id="t_year_level">
+                            <select name="year_level" id="t_year_level" onchange="updateTreasurerSectionOptions('create')">
                                 <option value="">Select year</option>
                                 @foreach([1,2,3,4] as $year)
                                 <option value="{{ $year }}">{{ $year }}</option>
@@ -134,7 +134,11 @@
                             </select>
                         </div>
                     </div>
-                    <div class="fg"><label>Section</label><input type="text" name="section" id="t_section"></div>
+                    <div class="fg"><label>Section</label>
+                        <select name="section" id="t_section">
+                            <option value="">Select program and year first</option>
+                        </select>
+                    </div>
                 </div>
                 <button type="submit" class="btn-save"><i class="bi bi-save-fill"></i> Save Treasurer</button>
             </form>
@@ -186,7 +190,7 @@
                 <div id="e_sectionFields" style="display:none;">
                     <div class="form-row">
                         <div class="fg"><label>Program</label>
-                            <select name="program" id="e_program">
+                            <select name="program" id="e_program" onchange="updateTreasurerSectionOptions('edit')">
                                 <option value="">Select program</option>
                                 @foreach(['BSIT','BSBA','BSHM','BSED','BEED'] as $prog)
                                 <option value="{{ $prog }}">{{ $prog }}</option>
@@ -194,7 +198,7 @@
                             </select>
                         </div>
                         <div class="fg"><label>Year Level</label>
-                            <select name="year_level" id="e_year_level">
+                            <select name="year_level" id="e_year_level" onchange="updateTreasurerSectionOptions('edit')">
                                 <option value="">Select year</option>
                                 @foreach([1,2,3,4] as $year)
                                 <option value="{{ $year }}">{{ $year }}</option>
@@ -202,7 +206,11 @@
                             </select>
                         </div>
                     </div>
-                    <div class="fg"><label>Section</label><input type="text" name="section" id="e_section"></div>
+                    <div class="fg"><label>Section</label>
+                        <select name="section" id="e_section">
+                            <option value="">Select program and year first</option>
+                        </select>
+                    </div>
                 </div>
                 <button type="submit" class="btn-save"><i class="bi bi-check-circle-fill"></i> Update Treasurer</button>
             </form>
@@ -213,6 +221,35 @@
 
 @push('scripts')
 <script>
+const managedTreasurerSections = @json($sections->map->only(['program', 'year_level', 'section'])->values());
+
+function updateTreasurerSectionOptions(mode = 'create', selectedSection = '') {
+    const prefix = mode === 'create' ? 't' : 'e';
+    const program = document.getElementById(`${prefix}_program`).value;
+    const yearLevel = document.getElementById(`${prefix}_year_level`).value;
+    const sectionSelect = document.getElementById(`${prefix}_section`);
+    const matchingSections = managedTreasurerSections.filter(section =>
+        section.program === program && String(section.year_level) === String(yearLevel)
+    );
+
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = !program || !yearLevel
+        ? 'Select program and year first'
+        : matchingSections.length
+            ? 'Select section'
+            : 'No sections configured';
+    sectionSelect.replaceChildren(placeholder);
+
+    matchingSections.forEach(section => {
+        const option = document.createElement('option');
+        option.value = section.section;
+        option.textContent = section.section;
+        option.selected = section.section === selectedSection;
+        sectionSelect.appendChild(option);
+    });
+}
+
 function toggleTreasurerFields(mode = 'create') {
     const type = document.getElementById(mode === 'create' ? 't_type' : 'e_type').value;
     const deptArea = document.getElementById(mode === 'create' ? 'departmentFields' : 'e_departmentFields');
@@ -232,6 +269,7 @@ function toggleTreasurerFields(mode = 'create') {
 function openAddModal() {
     document.getElementById('add_password').value = '';
     document.getElementById('add_password_confirmation').value = '';
+    updateTreasurerSectionOptions('create', document.getElementById('t_section').value);
     toggleTreasurerFields('create');
     document.getElementById('addModal').classList.add('show');
 }
@@ -251,7 +289,7 @@ function openEdit(treasurer) {
     document.getElementById('e_department').value = treasurer.department || '';
     document.getElementById('e_program').value = treasurer.program || '';
     document.getElementById('e_year_level').value = treasurer.year_level || '';
-    document.getElementById('e_section').value = treasurer.section || '';
+    updateTreasurerSectionOptions('edit', treasurer.section || '');
     toggleTreasurerFields('edit');
     document.getElementById('editModal').classList.add('show');
 }

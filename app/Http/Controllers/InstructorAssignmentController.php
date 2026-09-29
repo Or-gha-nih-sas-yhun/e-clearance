@@ -10,6 +10,7 @@ use App\Support\AcademicTerm;
 use App\Support\InstructorDepartment;
 use App\Support\ListPageSize;
 use App\Support\RecordPurge;
+use App\Support\StudentSubjects;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -152,6 +153,7 @@ class InstructorAssignmentController extends Controller
         $created = 0;
 
         DB::transaction(function () use ($assignment, $data, $sections, &$created): void {
+            RecordPurge::instructorAssignment($assignment);
             $assignment->delete();
             foreach ($sections as $section) {
                 InstructorAssignment::create([
@@ -410,7 +412,7 @@ class InstructorAssignmentController extends Controller
 
         $semester = SubjectCode::whereKey($data['subject_id'])->value('semester');
 
-        if ($enforceTerm && ! AcademicTerm::includesSubject($semester)) {
+        if ($enforceTerm && $semester !== StudentSubjects::BRIDGING_SEMESTER && ! AcademicTerm::includesSubject($semester)) {
             throw ValidationException::withMessages([
                 'subject_id' => 'That subject belongs to '.($semester ?: 'another semester').
                     ', but the college is running '.AcademicTerm::semester().'. Change the active term in System Settings first.',

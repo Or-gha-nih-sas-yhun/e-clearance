@@ -8,9 +8,7 @@
 @section('user-role', 'Student')
 @section('nav')
     <a class="nav-link active" href="{{ route('student.dashboard') }}"><i class="bi bi-grid-1x2"></i> Dashboard</a>
-    @if(\App\Support\StudentSubjects::isIrregular($student))
     <a class="nav-link" href="{{ route('student.subjects.index') }}"><i class="bi bi-journal-bookmark"></i> My Subjects</a>
-    @endif
     <a class="nav-link" href="{{ route('student.clearance-updates') }}"><i class="bi bi-clipboard2-check"></i> Clearance Updates</a>
     <a class="nav-link" href="{{ route('student.submission-remark') }}"><i class="bi bi-file-earmark-arrow-up"></i> Submission & Remark</a>
     <a class="nav-link" href="{{ route('student.chat-support') }}"><i class="bi bi-chat-square-text"></i> Chat Support</a>
@@ -54,45 +52,10 @@
 @endphp
 <div class="page-content">
     <div class="row g-3 mb-3">
-        <div class="col-6 col-lg-3"><div class="metric-card"><div class="d-flex justify-content-between"><div><div class="text-secondary small">Approved</div><div class="fs-4 fw-bold">{{ $statusBreakdown['approved'] }}</div></div><div class="metric-icon bg-success-subtle text-success"><i class="bi bi-check2-circle"></i></div></div><div class="small text-secondary mt-2">of {{ $totalClearances }} clearances</div></div></div>
-        <div class="col-6 col-lg-3"><div class="metric-card"><div class="d-flex justify-content-between"><div><div class="text-secondary small">Awaiting review</div><div class="fs-4 fw-bold">{{ $statusBreakdown['pending'] }}</div></div><div class="metric-icon bg-warning-subtle text-warning"><i class="bi bi-hourglass-split"></i></div></div><div class="small text-secondary mt-2">still with reviewer</div></div></div>
-        <div class="col-6 col-lg-3"><div class="metric-card"><div class="d-flex justify-content-between"><div><div class="text-secondary small">Needs action</div><div class="fs-4 fw-bold">{{ $statusBreakdown['action'] }}</div></div><div class="metric-icon bg-danger-subtle text-danger"><i class="bi bi-exclamation-circle"></i></div></div><div class="small text-secondary mt-2">requires your attention</div></div></div>
-        <div class="col-6 col-lg-3"><div class="metric-card"><div class="d-flex justify-content-between"><div><div class="text-secondary small">Unread updates</div><div class="fs-4 fw-bold">{{ $unreadNotifications }}</div></div><div class="metric-icon bg-primary-subtle text-primary"><i class="bi bi-bell"></i></div></div><div class="small text-secondary mt-2">new notifications</div></div></div>
+        <div class="col-12 col-md-4"><div class="metric-card"><div class="d-flex justify-content-between"><div><div class="text-secondary small">Approved</div><div class="fs-4 fw-bold">{{ $statusBreakdown['approved'] }}</div></div><div class="metric-icon bg-success-subtle text-success"><i class="bi bi-check2-circle"></i></div></div><div class="small text-secondary mt-2">of {{ $totalClearances }} clearances</div></div></div>
+        <div class="col-12 col-md-4"><div class="metric-card"><div class="d-flex justify-content-between"><div><div class="text-secondary small">Awaiting review</div><div class="fs-4 fw-bold">{{ $statusBreakdown['pending'] }}</div></div><div class="metric-icon bg-warning-subtle text-warning"><i class="bi bi-hourglass-split"></i></div></div><div class="small text-secondary mt-2">still with reviewer</div></div></div>
+        <div class="col-12 col-md-4"><div class="metric-card"><div class="d-flex justify-content-between"><div><div class="text-secondary small">Overall progress</div><div class="fs-4 fw-bold">{{ $overallProgress }}%</div></div><div class="metric-icon bg-primary-subtle text-primary"><i class="bi bi-bar-chart-line"></i></div></div><div class="small text-secondary mt-2">of all required clearances</div></div></div>
     </div>
-
-    {{-- The controller has always fetched these eight and nothing rendered
-         them, so a student could see an unread count but never the updates
-         behind it without opening the bell. --}}
-    <div class="card card-stat mb-3"><div class="card-body p-4">
-        <div class="d-flex justify-content-between align-items-start mb-3">
-            <div>
-                <h5 class="mb-1">Recent updates</h5>
-                <div class="text-secondary small">The latest activity on your clearance.</div>
-            </div>
-            @if($unreadNotifications)
-                <span class="badge text-bg-primary">{{ $unreadNotifications }} unread</span>
-            @endif
-        </div>
-
-        @forelse($notifications as $notification)
-            <div class="d-flex gap-3 py-2 {{ ! $loop->last ? 'border-bottom' : '' }}">
-                <span class="metric-icon {{ (int) ($notification->is_read ?? 0) === 0 ? 'bg-primary-subtle text-primary' : 'bg-secondary-subtle text-secondary' }}" style="flex:0 0 auto;">
-                    <i class="bi {{ (int) ($notification->is_read ?? 0) === 0 ? 'bi-bell-fill' : 'bi-bell' }}"></i>
-                </span>
-                <div class="flex-grow-1">
-                    <div class="{{ (int) ($notification->is_read ?? 0) === 0 ? 'fw-semibold' : '' }}">{{ $notification->message }}</div>
-                    <div class="text-secondary small mt-1">
-                        {{ $notification->created_at ? \Illuminate\Support\Carbon::parse($notification->created_at)->format('M d, Y · g:i A') : '' }}
-                        @if(filled($notification->link_url ?? null) && str_starts_with($notification->link_url, '/'))
-                            &nbsp;·&nbsp;<a href="{{ $notification->link_url }}">Open</a>
-                        @endif
-                    </div>
-                </div>
-            </div>
-        @empty
-            <div class="text-secondary small py-2">No updates yet. Activity on your clearance will appear here.</div>
-        @endforelse
-    </div></div>
 
     <div class="row g-3">
         <div class="col-lg-7">

@@ -281,22 +281,8 @@ final class ChatDirectory
             return false;
         }
 
-        $assigned = DB::table('instructor_assignment')
-            ->where('instructor_id', $instructorId)
-            ->where('program', $student->program)
-            ->where('year_level', $student->year_level)
-            ->whereRaw(SectionKey::sql('section').' = '.SectionKey::sql('?'), [$student->section])
-            ->exists();
-
-        if ($assigned) {
-            return true;
-        }
-
-        return Schema::hasTable('irregular_enrollment')
-            && DB::table('irregular_enrollment')
-                ->where('instructor_id', $instructorId)
-                ->where('student_id', $student->student_id)
-                ->exists();
+        return StudentSubjects::forStudent($student)
+            ->contains(fn ($subject) => (string) $subject->instructor_id === $instructorId);
     }
 
     /** Program heads only serve their own program; every other office serves all. */
@@ -343,21 +329,12 @@ final class ChatDirectory
             return;
         }
 
-        $query->where(function ($scope) use ($student) {
-            $scope->whereExists(fn ($assignment) => $assignment->from('instructor_assignment as ia')
-                ->whereColumn('ia.instructor_id', 'instructor_account.instructor_id')
-                ->where('ia.program', $student->program)
-                ->where('ia.year_level', $student->year_level)
-                ->whereRaw(SectionKey::sql('ia.section').' = '.SectionKey::sql('?'), [$student->section])
-                ->selectRaw('1'));
+        $instructorIds = StudentSubjects::forStudent($student)
+            ->pluck('instructor_id')->filter()->unique()->values()->all();
 
-            if (Schema::hasTable('irregular_enrollment')) {
-                $scope->orWhereExists(fn ($enrollment) => $enrollment->from('irregular_enrollment as ie')
-                    ->whereColumn('ie.instructor_id', 'instructor_account.instructor_id')
-                    ->where('ie.student_id', $student->student_id)
-                    ->selectRaw('1'));
-            }
-        });
+        $instructorIds === []
+            ? $query->whereRaw('1 = 0')
+            : $query->whereIn('instructor_id', $instructorIds);
     }
 
     /** Restricts a treasurers query to the section and department treasurers serving this student. */
@@ -383,21 +360,13 @@ final class ChatDirectory
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->where(function ($scope) use ($instructorId) {
-            $scope->whereExists(fn ($assignment) => $assignment->from('instructor_assignment as ia')
-                ->whereColumn('ia.program', 'student_account.program')
-                ->whereColumn('ia.year_level', 'student_account.year_level')
-                ->whereRaw(SectionKey::sql('ia.section').' = '.SectionKey::sql('student_account.section'))
-                ->where('ia.instructor_id', $instructorId)
-                ->selectRaw('1'));
+        $studentIds = DB::query()->fromSub(StudentSubjects::pairs(), 'sp')
+            ->where('sp.instructor_id', $instructorId)
+            ->pluck('sp.student_id')->unique()->values()->all();
 
-            if (Schema::hasTable('irregular_enrollment')) {
-                $scope->orWhereExists(fn ($enrollment) => $enrollment->from('irregular_enrollment as ie')
-                    ->whereColumn('ie.student_id', 'student_account.student_id')
-                    ->where('ie.instructor_id', $instructorId)
-                    ->selectRaw('1'));
-            }
-        });
+        return $studentIds === []
+            ? $query->whereRaw('1 = 0')
+            : $query->whereIn('student_account.student_id', $studentIds);
     }
 
     private function sameValue(mixed $left, mixed $right): bool

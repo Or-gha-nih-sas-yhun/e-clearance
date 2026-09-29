@@ -40,16 +40,22 @@ final class ChatThread
      * @param  array{role: string, id: string}  $partner
      * @return Collection<int, array<string, mixed>>
      */
-    public function messages(array $viewer, array $partner, int $since = 0, int $limit = 100): Collection
+    public function messages(array $viewer, array $partner, int $since = 0, int $limit = 100, bool $latest = false): Collection
     {
         $this->markRead($viewer, $partner);
 
-        return ChatMessage::query()
+        $messages = ChatMessage::query()
             ->where(fn (Builder $thread) => $this->scopeThread($thread, $viewer, $partner))
             ->where('id', '>', $since)
-            ->orderBy('id')
+            ->orderBy('id', $latest ? 'desc' : 'asc')
             ->limit($limit)
-            ->get()
+            ->get();
+
+        if ($latest) {
+            $messages = $messages->reverse()->values();
+        }
+
+        return $messages
             ->map(fn (ChatMessage $message) => [
                 'id' => $message->id,
                 'sender_id' => $message->sender_id,
@@ -59,6 +65,22 @@ final class ChatThread
                 'is_read' => (int) $message->is_read,
                 'time_fmt' => $message->created_at?->format('M d, Y g:i A'),
             ]);
+    }
+
+    /**
+     * Permanently removes a message only when the authenticated participant is
+     * its sender. Matching both the role and identifier prevents equal-looking
+     * IDs from another portal from claiming the same message.
+     *
+     * @param  array{role: string, id: string}  $sender
+     */
+    public function delete(array $sender, int $messageId): bool
+    {
+        return ChatMessage::query()
+            ->whereKey($messageId)
+            ->where('sender_role', $sender['role'])
+            ->where('sender_id', $sender['id'])
+            ->delete() === 1;
     }
 
     /**

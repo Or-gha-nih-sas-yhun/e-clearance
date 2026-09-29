@@ -10,9 +10,7 @@
 
 @section('nav')
     <a class="nav-link" href="{{ route('student.dashboard') }}"><i class="bi bi-grid-1x2"></i> Dashboard</a>
-    @if(\App\Support\StudentSubjects::isIrregular($student))
     <a class="nav-link" href="{{ route('student.subjects.index') }}"><i class="bi bi-journal-bookmark"></i> My Subjects</a>
-    @endif
     <a class="nav-link active" href="{{ route('student.clearance-updates') }}"><i class="bi bi-clipboard2-check"></i> Clearance Updates</a>
     <a class="nav-link" href="{{ route('student.submission-remark') }}"><i class="bi bi-file-earmark-arrow-up"></i> Submission & Remark</a>
     <a class="nav-link" href="{{ route('student.chat-support') }}"><i class="bi bi-chat-square-text"></i> Chat Support</a>
@@ -237,10 +235,18 @@
                 @endphp
                 <button class="office-clearance-card" type="button" data-office-modal-open="{{ $officeModalId }}" aria-controls="{{ $officeModalId }}" aria-haspopup="dialog">
                     <span class="office-card-head"><span class="office-card-identity"><span class="clearance-icon"><i class="bi {{ $officeIcons[strtolower($office['key'])] ?? 'bi-building' }}"></i></span><span><strong>{{ $office['label'] }}</strong><small>Office clearance</small></span></span></span>
-                    <span class="office-card-meta"><span class="office-card-approver"><i class="bi bi-person-badge"></i><span><small>Clearance approver</small><strong>{{ $office['approver_name'] }}</strong></span></span><span class="office-card-status {{ $officeTone }}">{{ $office['status'] }}</span></span>
-                    @if($office['evaluation_required'] ?? false)
-                        <span class="office-card-status {{ $office['evaluation_completed'] ? 'success' : 'warning' }}">Evaluation: {{ $office['evaluation_completed'] ? 'Completed' : 'Not completed' }}</span>
-                    @endif
+                    <span class="office-card-meta">
+                        <span class="office-card-approver"><i class="bi bi-person-badge"></i><span><small>Clearance approver</small><strong>{{ $office['approver_name'] }}</strong></span></span>
+                        <span class="office-card-statuses">
+                            <span class="office-card-status {{ $officeTone }}">{{ $office['status'] }}</span>
+                            @if($office['evaluation_required'] ?? false)
+                                <span class="office-card-status office-card-evaluation-status {{ $office['evaluation_completed'] ? 'success' : 'warning' }}" title="{{ $office['evaluation_label'] }}: {{ $office['evaluation_completed'] ? 'Completed' : 'Required' }}">
+                                    <i class="bi {{ $office['evaluation_completed'] ? 'bi-check-circle-fill' : 'bi-exclamation-circle-fill' }}" aria-hidden="true"></i>
+                                    <span>Evaluation {{ $office['evaluation_completed'] ? 'completed' : 'required' }}</span>
+                                </span>
+                            @endif
+                        </span>
+                    </span>
                     <span class="office-card-foot"><span>View requirements, remarks, and submission</span><i class="bi bi-arrow-right"></i></span>
                 </button>
             @empty

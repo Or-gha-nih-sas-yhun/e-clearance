@@ -198,7 +198,7 @@
     @stack('styles')
     <link href="{{ asset('css/portal_page_indicator.css') }}" rel="stylesheet">
 </head>
-<body class="student-portal-theme portal-chrome-theme @yield('theme-body-class') {{ request()->routeIs('registrar.*', 'office.*', 'treasurer.*') ? 'campus-glass-theme' : '' }}">
+<body class="student-portal-theme portal-chrome-theme @yield('theme-body-class') {{ request()->routeIs('registrar.*', 'office.*', 'treasurer.*') ? 'campus-glass-theme' : '' }} {{ str_contains((string) request()->userAgent(), 'MCCStudentAndroid/') ? 'student-android-app' : '' }}">
 @include('partials.app-shell-body')
 <div class="overlay" id="overlay" onclick="closeOverlay()"></div>
 @include('partials.action-feedback-modal')

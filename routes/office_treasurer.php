@@ -54,6 +54,7 @@ Route::prefix('office')->name('office.')->group(function () {
         Route::get('chat', [OfficeChatController::class, 'index'])->name('chat');
         Route::get('chat/messages', [OfficeChatController::class, 'messages'])->name('chat.messages');
         Route::post('chat/messages', [OfficeChatController::class, 'send'])->name('chat.send');
+        Route::delete('chat/messages/{message}', [OfficeChatController::class, 'destroy'])->whereNumber('message')->name('chat.destroy');
         Route::get('account/edit', [AccountController::class, 'edit'])->name('account.edit');
         Route::put('account', [AccountController::class, 'update'])->name('account.update');
     });
@@ -84,6 +85,7 @@ Route::prefix('treasurer')->name('treasurer.')->group(function () {
         Route::get('chat', [TreasurerChatController::class, 'index'])->name('chat');
         Route::get('chat/messages', [TreasurerChatController::class, 'messages'])->name('chat.messages');
         Route::post('chat/messages', [TreasurerChatController::class, 'send'])->name('chat.send');
+        Route::delete('chat/messages/{message}', [TreasurerChatController::class, 'destroy'])->whereNumber('message')->name('chat.destroy');
         Route::get('account/edit', [AccountController::class, 'edit'])->name('account.edit');
         Route::put('account', [AccountController::class, 'update'])->name('account.update');
     });

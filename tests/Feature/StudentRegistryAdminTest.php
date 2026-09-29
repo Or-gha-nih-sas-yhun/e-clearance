@@ -39,7 +39,9 @@ class StudentRegistryAdminTest extends TestCase
             ->assertOk()
             ->assertSee('Student Registration List')
             ->assertSee('2026-0001')
-            ->assertSee('jovan@mcc.edu.ph');
+            ->assertSee('jovan@mcc.edu.ph')
+            ->assertSee('Required headers')
+            ->assertSee('student_id, ms_account');
     }
 
     public function test_a_guest_cannot_reach_the_registration_list(): void

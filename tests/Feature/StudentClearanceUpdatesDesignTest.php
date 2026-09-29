@@ -24,6 +24,11 @@ class StudentClearanceUpdatesDesignTest extends TestCase
         $this->assertStringContainsString('student-status-breakdown', $source);
         $this->assertStringContainsString('student-instructor-grid', $source);
         $this->assertStringContainsString('office-card-grid', $source);
+        $this->assertStringContainsString('office-card-statuses', $source);
+        $this->assertStringContainsString('office-card-evaluation-status', $source);
+
+        $stylesheet = (string) file_get_contents($stylesheetPath);
+        $this->assertStringContainsString('.student-clearance-section .office-card-statuses', $stylesheet);
     }
 
     public function test_redesign_preserves_clearance_requests_uploads_and_document_viewer(): void

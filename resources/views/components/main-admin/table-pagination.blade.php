@@ -45,7 +45,3 @@
         @endif
     </div>
 </div>
-
-@if($paginator->hasPages())
-<div class="table-pager-links">{{ $paginator->onEachSide(1)->links() }}</div>
-@endif

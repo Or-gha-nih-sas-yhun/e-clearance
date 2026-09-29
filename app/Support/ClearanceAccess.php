@@ -4,7 +4,6 @@ namespace App\Support;
 
 use App\Models\StudentAccount;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 final class ClearanceAccess
 {
@@ -16,27 +15,7 @@ final class ClearanceAccess
             return false;
         }
 
-        $regularAssignment = DB::table('instructor_assignment as ia')
-            ->join('student_account as sa', function ($join) {
-                $join->on('sa.program', '=', 'ia.program')
-                    ->on('sa.year_level', '=', 'ia.year_level')
-                    ->whereRaw(SectionKey::sql('sa.section').' = '.SectionKey::sql('ia.section'));
-            })
-            ->where('ia.instructor_id', $instructorId)
-            ->where('ia.subject_id', $subjectId)
-            ->where('sa.student_id', $student->student_id)
-            ->exists();
-
-        if ($regularAssignment) {
-            return true;
-        }
-
-        return Schema::hasTable('irregular_enrollment')
-            && DB::table('irregular_enrollment')
-                ->where('instructor_id', $instructorId)
-                ->where('subject_id', $subjectId)
-                ->where('student_id', $student->student_id)
-                ->exists();
+        return StudentSubjects::covers($student, $subjectId, $instructorId);
     }
 
     public function officeCanReview(object $office, StudentAccount $student): bool

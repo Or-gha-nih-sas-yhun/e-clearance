@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Support\StudentSubjects;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -17,14 +18,20 @@ class DashboardController extends Controller
             ->orderByDesc('requested_at')
             ->first();
 
-        $subjectClearances = DB::table('clearance_status')
-            ->leftJoin('subject_codes', 'clearance_status.subject_id', '=', 'subject_codes.subject_id')
-            ->leftJoin('instructor_account', 'clearance_status.instructor_id', '=', 'instructor_account.instructor_id')
-            ->where('clearance_status.student_id', $student->student_id)
+        $subjectClearances = DB::query()
+            ->fromSub(StudentSubjects::pairs(), 'sp')
+            ->join('clearance_status as cs', function ($join) {
+                $join->on('cs.student_id', '=', 'sp.student_id')
+                    ->on('cs.subject_id', '=', 'sp.subject_id')
+                    ->on('cs.instructor_id', '=', 'sp.instructor_id');
+            })
+            ->leftJoin('subject_codes', 'sp.subject_id', '=', 'subject_codes.subject_id')
+            ->leftJoin('instructor_account', 'sp.instructor_id', '=', 'instructor_account.instructor_id')
+            ->where('sp.student_id', $student->student_id)
             ->select(
-                'clearance_status.status',
-                'clearance_status.remarks',
-                'clearance_status.updated_at',
+                'cs.status',
+                'cs.remarks',
+                'cs.updated_at',
                 'subject_codes.subject_code',
                 'subject_codes.subject_description',
                 'instructor_account.firstname as instructor_firstname',
@@ -37,19 +44,6 @@ class DashboardController extends Controller
             ->where('student_id', $student->student_id)
             ->orderBy('office_role')
             ->get();
-
-        $notifications = DB::table('notifications')
-            ->where('user_id', $student->student_id)
-            ->where('recipient_role', 'student')
-            ->orderByDesc('created_at')
-            ->limit(8)
-            ->get();
-
-        $unreadNotifications = DB::table('notifications')
-            ->where('user_id', $student->student_id)
-            ->where('recipient_role', 'student')
-            ->where('is_read', 0)
-            ->count();
 
         $subjectsTotal = $subjectClearances->count();
         $subjectsApproved = $subjectClearances->where('status', 'Approved')->count();
@@ -115,8 +109,6 @@ class DashboardController extends Controller
             'clearanceRequest',
             'subjectClearances',
             'officeClearances',
-            'notifications',
-            'unreadNotifications',
             'subjectsTotal',
             'subjectsApproved',
             'officesTotal',
