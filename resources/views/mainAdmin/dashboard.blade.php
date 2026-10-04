@@ -25,12 +25,18 @@
     </x-main-admin.page-header>
 
     <div class="admin-metrics">
-        <div class="metric-card admin-metric"><div><small>Students</small><strong>{{ number_format($students) }}</strong><span>Registered accounts</span></div><i class="metric-symbol symbol-blue bi bi-people"></i></div>
-        <div class="metric-card admin-metric"><div><small>Instructors</small><strong>{{ number_format($instructors) }}</strong><span>Teaching personnel</span></div><i class="metric-symbol symbol-purple bi bi-person-video3"></i></div>
-        <div class="metric-card admin-metric"><div><small>Admin Personnel</small><strong>{{ number_format($admins) }}</strong><span>Office personnel</span></div><i class="metric-symbol symbol-cyan bi bi-person-badge"></i></div>
-        <div class="metric-card admin-metric"><div><small>Registrars</small><strong>{{ number_format($registrars) }}</strong><span>Registrar accounts</span></div><i class="metric-symbol symbol-green bi bi-building-check"></i></div>
-        <div class="metric-card admin-metric"><div><small>Treasurers</small><strong>{{ number_format($treasurers) }}</strong><span>Treasury accounts</span></div><i class="metric-symbol symbol-amber bi bi-wallet2"></i></div>
+        <div class="metric-card admin-metric" data-chart-card data-chart-template="studentsAccountChart" data-chart-title="Students by program" data-chart-description="Registered student accounts grouped by program." data-chart-icon="bi-people"><div><small>Students</small><strong>{{ number_format($students) }}</strong><span>Registered accounts</span></div><i class="metric-symbol symbol-blue bi bi-people"></i></div>
+        <div class="metric-card admin-metric" data-chart-card data-chart-template="instructorsAccountChart" data-chart-title="Instructors by department" data-chart-description="Instructor accounts grouped by department." data-chart-icon="bi-person-video3"><div><small>Instructors</small><strong>{{ number_format($instructors) }}</strong><span>Teaching personnel</span></div><i class="metric-symbol symbol-purple bi bi-person-video3"></i></div>
+        <div class="metric-card admin-metric" data-chart-card data-chart-template="personnelAccountChart" data-chart-title="Admin personnel by office" data-chart-description="Administrative personnel accounts grouped by office." data-chart-icon="bi-person-badge"><div><small>Admin Personnel</small><strong>{{ number_format($admins) }}</strong><span>Office personnel</span></div><i class="metric-symbol symbol-cyan bi bi-person-badge"></i></div>
+        <div class="metric-card admin-metric" data-chart-card data-chart-template="registrarsAccountChart" data-chart-title="Registrar accounts by role" data-chart-description="Registered Registrar accounts grouped by role." data-chart-icon="bi-building-check"><div><small>Registrars</small><strong>{{ number_format($registrars) }}</strong><span>Registrar accounts</span></div><i class="metric-symbol symbol-green bi bi-building-check"></i></div>
+        <div class="metric-card admin-metric" data-chart-card data-chart-template="treasurersAccountChart" data-chart-title="Treasurers by type" data-chart-description="Treasurer accounts grouped by assigned type." data-chart-icon="bi-wallet2"><div><small>Treasurers</small><strong>{{ number_format($treasurers) }}</strong><span>Treasury accounts</span></div><i class="metric-symbol symbol-amber bi bi-wallet2"></i></div>
     </div>
+
+    <template id="studentsAccountChart"><x-main-admin.account-breakdown-chart :items="$studentAccountBreakdown" :total="$students" label="student accounts" tone="blue" /></template>
+    <template id="instructorsAccountChart"><x-main-admin.account-breakdown-chart :items="$instructorAccountBreakdown" :total="$instructors" label="instructor accounts" tone="purple" /></template>
+    <template id="personnelAccountChart"><x-main-admin.account-breakdown-chart :items="$adminAccountBreakdown" :total="$admins" label="personnel accounts" tone="cyan" /></template>
+    <template id="registrarsAccountChart"><x-main-admin.account-breakdown-chart :items="$registrarAccountBreakdown" :total="$registrars" label="registrar accounts" tone="green" /></template>
+    <template id="treasurersAccountChart"><x-main-admin.account-breakdown-chart :items="$treasurerAccountBreakdown" :total="$treasurers" label="treasurer accounts" tone="amber" /></template>
 
     <div class="admin-overview-grid">
         <section class="chart-card overview-panel">
@@ -65,6 +71,7 @@
         <div class="chart-card"><div class="chart-card-header"><h3><i class="bi bi-bar-chart text-primary me-2"></i>Monthly Status Breakdown</h3></div><div id="statusStacked" class="chart-canvas" role="img" aria-label="Monthly clearance status chart"></div></div>
     </div>
 </div>
+<x-chart-viewer />
 @endsection
 
 @push('styles')

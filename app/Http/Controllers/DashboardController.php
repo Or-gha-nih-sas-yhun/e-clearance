@@ -8,7 +8,9 @@ use App\Models\InstructorAssignment;
 use App\Models\Registrar;
 use App\Models\Student;
 use App\Models\Treasurer;
+use App\Support\InstructorDepartment;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
@@ -20,6 +22,58 @@ class DashboardController extends Controller
         $admins = AdminPersonnel::count();
         $registrars = Registrar::count();
         $treasurers = Treasurer::count();
+
+        $studentAccountBreakdown = Student::query()
+            ->select('program', DB::raw('COUNT(*) as total'))
+            ->groupBy('program')
+            ->orderByDesc('total')
+            ->get()
+            ->map(fn ($row) => [
+                'label' => trim((string) $row->program) ?: 'Unassigned',
+                'value' => (int) $row->total,
+            ]);
+
+        $instructorAccountBreakdown = Instructor::query()
+            ->get(['department'])
+            ->groupBy(fn ($instructor) => InstructorDepartment::canonical($instructor->department) ?: 'Unassigned')
+            ->map(fn ($accounts, $department) => ['label' => $department, 'value' => $accounts->count()])
+            ->sortByDesc('value')
+            ->values();
+
+        $adminAccountBreakdown = AdminPersonnel::query()
+            ->get(['office', 'role'])
+            ->groupBy(function ($personnel) {
+                $office = trim((string) $personnel->office);
+                $role = AdminPersonnel::$validRoles[$personnel->role] ?? Str::headline((string) $personnel->role);
+
+                return $office ?: ($role ?: 'Unassigned');
+            })
+            ->map(fn ($accounts, $office) => ['label' => $office, 'value' => $accounts->count()])
+            ->sortByDesc('value')
+            ->values();
+
+        $registrarAccountBreakdown = Registrar::query()
+            ->get(['role'])
+            ->groupBy(fn ($registrar) => Str::headline((string) $registrar->role) ?: 'Registrar')
+            ->map(fn ($accounts, $role) => ['label' => $role, 'value' => $accounts->count()])
+            ->sortByDesc('value')
+            ->values();
+
+        $treasurerTypeLabels = [
+            'department' => 'Department Treasurers',
+            'section' => 'Section Treasurers',
+            'main' => 'Main Treasurers',
+        ];
+        $treasurerAccountBreakdown = Treasurer::query()
+            ->get(['treasurer_type'])
+            ->groupBy(function ($treasurer) use ($treasurerTypeLabels) {
+                $type = strtolower(trim((string) $treasurer->treasurer_type));
+
+                return $treasurerTypeLabels[$type] ?? (Str::headline($type) ?: 'Unassigned');
+            })
+            ->map(fn ($accounts, $type) => ['label' => $type, 'value' => $accounts->count()])
+            ->sortByDesc('value')
+            ->values();
 
         // System-wide clearance checkpoints. Subject clearances represent the
         // instructor portal; office clearances also contain treasury, registrar,
@@ -137,6 +191,8 @@ class DashboardController extends Controller
 
         return view('mainAdmin.dashboard', compact(
             'students', 'instructors', 'admins', 'registrars', 'treasurers',
+            'studentAccountBreakdown', 'instructorAccountBreakdown', 'adminAccountBreakdown',
+            'registrarAccountBreakdown', 'treasurerAccountBreakdown',
             'pending', 'approved', 'cleared', 'rejected',
             'monthlyData', 'stackData', 'statusByProgram', 'byYear',
             'bySubjectProg', 'notifRead', 'notifUnread', 'approverMap', 'instrAssign'

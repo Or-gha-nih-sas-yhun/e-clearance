@@ -72,6 +72,7 @@
         @media (max-width:480px) { .action-dialog-actions { flex-direction:column-reverse; } }
     </style>
     <link href="{{ asset('css/portal_overlays.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/chart_card_viewer.css') }}" rel="stylesheet">
     <link href="{{ asset('css/student_portal_chrome.css') }}" rel="stylesheet">
     @stack('styles')
     <link href="{{ asset('css/main_admin_portal.css') }}" rel="stylesheet">
@@ -632,6 +633,7 @@ document.addEventListener('click', function(event) {
 </script>
 <script src="{{ asset('js/protected-page-history.js') }}"></script>
 <script src="{{ asset('js/auth-feedback-modals.js') }}"></script>
+<script src="{{ asset('js/chart_card_viewer.js') }}"></script>
 @stack('scripts')
 </body>
 </html>

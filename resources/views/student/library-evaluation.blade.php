@@ -8,7 +8,7 @@
 @section('user-role', 'Student')
 @section('nav')
     <a class="nav-link" href="{{ route('student.dashboard') }}"><i class="bi bi-grid-1x2 me-2"></i> Dashboard</a>
-    <a class="nav-link" href="{{ route('student.subjects.index') }}"><i class="bi bi-journal-bookmark me-2"></i> My Subjects</a>
+    <a class="nav-link" href="{{ route('student.subjects.index') }}"><i class="bi bi-journal-bookmark me-2"></i> Bridging Subjects</a>
     <a class="nav-link" href="{{ route('student.clearance-updates') }}"><i class="bi bi-clipboard2-check me-2"></i> Clearance Updates</a>
     <a class="nav-link" href="{{ route('student.submission-remark') }}"><i class="bi bi-file-earmark-arrow-up me-2"></i> Submission & Remark</a>
     <a class="nav-link" href="{{ route('student.chat-support') }}"><i class="bi bi-chat-square-text me-2"></i> Chat Support</a>
