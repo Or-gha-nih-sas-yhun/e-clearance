@@ -6,7 +6,7 @@
 @section('page-title', 'My Subjects')
 @section('user-label', $student->full_name . ' · ' . $student->program . ' ' . $student->year_level . '-' . $student->section)
 @section('user-role', 'Student')
-@push('styles')<link href="{{ asset('css/clearance_workspace.css') }}" rel="stylesheet">@endpush
+@push('styles')<link href="{{ asset('css/clearance_workspace.css') }}?v={{ filemtime(public_path('css/clearance_workspace.css')) }}" rel="stylesheet">@endpush
 
 @section('nav')
     <a class="nav-link" href="{{ route('student.dashboard') }}"><i class="bi bi-grid-1x2"></i> Dashboard</a>

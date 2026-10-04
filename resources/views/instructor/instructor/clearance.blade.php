@@ -1,6 +1,6 @@
 @extends('instructor.layouts.instructor')
 @section('title', 'Clearance')
-@push('styles')<link href="{{ asset('css/clearance_workspace.css') }}" rel="stylesheet">@endpush
+@push('styles')<link href="{{ asset('css/clearance_workspace.css') }}?v={{ filemtime(public_path('css/clearance_workspace.css')) }}" rel="stylesheet">@endpush
 
 @section('content')
 <div class="clearance-workspace">

@@ -6,7 +6,7 @@
 @section('page-title', 'Student Clearance')
 @section('user-label', $registrar->full_name ?? $registrar->email)
 @section('user-role', 'Registrar')
-@push('styles')<link href="{{ asset('css/clearance_workspace.css') }}" rel="stylesheet"><link href="{{ asset('css/clearance_document_viewer.css') }}" rel="stylesheet">@endpush
+@push('styles')<link href="{{ asset('css/clearance_workspace.css') }}?v={{ filemtime(public_path('css/clearance_workspace.css')) }}" rel="stylesheet"><link href="{{ asset('css/clearance_document_viewer.css') }}" rel="stylesheet">@endpush
 
 @section('nav')
     <a class="nav-link" href="{{ route('registrar.dashboard') }}"><i class="bi bi-speedometer2 me-2"></i> Dashboard</a>

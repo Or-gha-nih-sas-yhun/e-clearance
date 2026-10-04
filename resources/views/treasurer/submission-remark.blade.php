@@ -6,7 +6,7 @@
 @section('page-title', 'Submission & Remark')
 @section('user-label', $treasurer->full_name)
 @section('user-role', 'Treasurer')
-@push('styles')<link href="{{ asset('css/clearance_workspace.css') }}" rel="stylesheet">@endpush
+@push('styles')<link href="{{ asset('css/clearance_workspace.css') }}?v={{ filemtime(public_path('css/clearance_workspace.css')) }}" rel="stylesheet">@endpush
 
 @section('nav')
     <a class="nav-link" href="{{ route('treasurer.dashboard') }}"><i class="bi bi-speedometer2 me-2"></i> Dashboard</a>

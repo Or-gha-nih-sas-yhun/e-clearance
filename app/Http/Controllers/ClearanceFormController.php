@@ -148,7 +148,7 @@ class ClearanceFormController extends Controller
 
         $officeLabels = [
             'property custodian' => 'Property Custodian',
-            'scc adviser' => 'SCC Adviser',
+            'scc adviser' => 'SSC Adviser',
             'sas director' => 'SAS Director',
             'guidance office' => 'Guidance Office',
             'library' => 'Library',

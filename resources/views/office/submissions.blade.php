@@ -6,7 +6,7 @@
 @section('page-title', ucwords($officeName) . ' Submissions & Remark')
 @section('user-label', $office->full_name)
 @section('user-role', ucwords($officeName))
-@push('styles')<link href="{{ asset('css/clearance_workspace.css') }}" rel="stylesheet">@endpush
+@push('styles')<link href="{{ asset('css/clearance_workspace.css') }}?v={{ filemtime(public_path('css/clearance_workspace.css')) }}" rel="stylesheet">@endpush
 
 @section('nav')
     <a class="nav-link" href="{{ route('office.dashboard') }}"><i class="bi bi-speedometer2 me-2"></i> Dashboard</a>

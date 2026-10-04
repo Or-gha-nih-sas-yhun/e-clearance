@@ -103,7 +103,7 @@ final class ClearanceWorkflow
             'section treasurer' => 'Section Treasurer',
             'department treasurer' => 'Department Treasurer',
             'property custodian' => 'Property Custodian',
-            'scc adviser' => 'SCC Adviser',
+            'scc adviser' => 'SSC Adviser',
             'sas director' => 'SAS Director',
             'guidance office' => 'Guidance Office',
             'library' => 'Library',
