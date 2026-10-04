@@ -11,9 +11,9 @@ class PostLogout
 
     public static function response(Request $request, string $loginRoute): RedirectResponse
     {
-        // The previous session was invalidated by the controller. Store this in
-        // the new session so a history-triggered request is sent to the landing page.
-        $request->session()->put(self::SESSION_KEY, true);
+        // Keep the history marker limited to the portal that logged out. Other
+        // portal sessions can stay active in the same browser without clearing it.
+        $request->session()->put(self::sessionKey($loginRoute), true);
 
         $response = redirect()->route($loginRoute)
             ->with('status', 'You have been logged out successfully.');
@@ -27,15 +27,20 @@ class PostLogout
 
     public static function guestRedirect(Request $request, string $loginRoute): RedirectResponse
     {
-        if ((bool) $request->session()->get(self::SESSION_KEY, false)) {
+        if ((bool) $request->session()->get(self::sessionKey($loginRoute), false)) {
             return redirect()->route('landing');
         }
 
         return redirect()->route($loginRoute);
     }
 
-    public static function clear(Request $request): void
+    public static function clear(Request $request, string $loginRoute): void
     {
-        $request->session()->forget(self::SESSION_KEY);
+        $request->session()->forget(self::sessionKey($loginRoute));
+    }
+
+    private static function sessionKey(string $loginRoute): string
+    {
+        return self::SESSION_KEY.'.'.str_replace('.', '_', $loginRoute);
     }
 }

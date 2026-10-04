@@ -15,7 +15,7 @@ class MainAdminAuth
             return PostLogout::guestRedirect($request, 'login');
         }
 
-        PostLogout::clear($request);
+        PostLogout::clear($request, 'login');
 
         return $next($request);
     }

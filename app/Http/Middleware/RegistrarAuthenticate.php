@@ -16,7 +16,7 @@ class RegistrarAuthenticate
             return PostLogout::guestRedirect($request, 'registrar.login');
         }
 
-        PostLogout::clear($request);
+        PostLogout::clear($request, 'registrar.login');
 
         return $next($request);
     }

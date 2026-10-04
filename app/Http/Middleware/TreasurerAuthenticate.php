@@ -16,7 +16,7 @@ class TreasurerAuthenticate
             return PostLogout::guestRedirect($request, 'treasurer.login');
         }
 
-        PostLogout::clear($request);
+        PostLogout::clear($request, 'treasurer.login');
 
         return $next($request);
     }

@@ -16,7 +16,7 @@ class OfficeAuthenticate
             return PostLogout::guestRedirect($request, 'office.login');
         }
 
-        PostLogout::clear($request);
+        PostLogout::clear($request, 'office.login');
 
         return $next($request);
     }

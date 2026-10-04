@@ -16,7 +16,7 @@ class InstructorAuthenticate
             return PostLogout::guestRedirect($request, 'instructor.login');
         }
 
-        PostLogout::clear($request);
+        PostLogout::clear($request, 'instructor.login');
 
         return $next($request);
     }

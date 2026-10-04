@@ -83,7 +83,7 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         Auth::guard('registrar')->logout();
-        $request->session()->invalidate();
+        $request->session()->regenerate(true);
         $request->session()->regenerateToken();
 
         return PostLogout::response($request, 'registrar.login');

@@ -88,7 +88,7 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         Auth::guard('office')->logout();
-        $request->session()->invalidate();
+        $request->session()->regenerate(true);
         $request->session()->regenerateToken();
 
         return PostLogout::response($request, 'office.login');

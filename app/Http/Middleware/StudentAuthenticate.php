@@ -16,7 +16,7 @@ class StudentAuthenticate
             return PostLogout::guestRedirect($request, 'student.login');
         }
 
-        PostLogout::clear($request);
+        PostLogout::clear($request, 'student.login');
 
         return $next($request);
     }

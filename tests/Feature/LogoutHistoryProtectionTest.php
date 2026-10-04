@@ -139,6 +139,78 @@ class LogoutHistoryProtectionTest extends TestCase
         }
     }
 
+    public function test_logging_out_one_portal_keeps_another_portal_signed_in(): void
+    {
+        $student = StudentAccount::create([
+            'student_id' => 'MULTI-STUDENT-001',
+            'firstname' => 'Multi',
+            'lastname' => 'Student',
+            'email' => 'multi-student@example.test',
+            'password' => 'Strong-Password-123!',
+            'program' => 'BSIT',
+            'year_level' => '4',
+            'section' => 'A',
+            'student_type' => 'Regular',
+        ]);
+        $instructor = Instructor::create([
+            'instructor_id' => 'MULTI-INSTRUCTOR-001',
+            'firstname' => 'Multi',
+            'lastname' => 'Instructor',
+            'email' => 'multi-instructor@example.test',
+            'password' => 'Strong-Password-123!',
+            'department' => 'BSIT',
+        ]);
+
+        $this->actingAs($student, 'student')->actingAs($instructor, 'instructor');
+
+        $this->post(route('student.logout'))
+            ->assertRedirect(route('student.login'));
+
+        $this->assertGuest('student');
+        $this->assertAuthenticatedAs($instructor, 'instructor');
+
+        // Visiting the still-active portal must not remove the Student portal's
+        // history marker or its own authenticated session.
+        $this->get(route('instructor.dashboard'))->assertOk();
+        $this->assertAuthenticatedAs($instructor, 'instructor');
+        $this->get(route('student.dashboard'))->assertRedirect(route('landing'));
+    }
+
+    public function test_admin_logout_removes_only_admin_session_data(): void
+    {
+        $admin = MainAdmin::create([
+            'name' => 'Multi Admin',
+            'email' => 'multi-admin@example.test',
+            'password' => 'Strong-Password-123!',
+        ]);
+        $student = StudentAccount::create([
+            'student_id' => 'MULTI-STUDENT-002',
+            'firstname' => 'Still',
+            'lastname' => 'Signed In',
+            'email' => 'multi-student-two@example.test',
+            'password' => 'Strong-Password-123!',
+            'program' => 'BSIT',
+            'year_level' => '4',
+            'section' => 'B',
+            'student_type' => 'Regular',
+        ]);
+
+        $this->withSession([
+            'admin_id' => $admin->id,
+            'admin_name' => $admin->name,
+            'admin_email' => $admin->email,
+        ])->actingAs($admin, 'admin')->actingAs($student, 'student');
+
+        $this->post(route('logout'))
+            ->assertRedirect(route('login'))
+            ->assertSessionMissing('admin_id')
+            ->assertSessionMissing('admin_name')
+            ->assertSessionMissing('admin_email');
+
+        $this->assertGuest('admin');
+        $this->assertAuthenticatedAs($student, 'student');
+    }
+
     public function test_authenticated_pages_are_not_cached_and_reload_if_restored_from_history(): void
     {
         $student = StudentAccount::create([
