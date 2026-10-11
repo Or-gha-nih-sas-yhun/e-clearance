@@ -122,8 +122,11 @@ class StudentClearanceController extends Controller
         $message = $data['status'] === 'Approved'
             ? 'Registrar clearance approved successfully.'
             : 'Registrar clearance returned to pending.';
+        $title = $data['status'] === 'Approved'
+            ? 'Clearance Approved'
+            : 'Clearance Set to Pending';
 
-        return back()->with('flash', ['type' => 'success', 'message' => $message]);
+        return back()->with('flash', ['type' => 'success', 'title' => $title, 'message' => $message]);
     }
 
     public function bulkSetClearanceStatus(Request $request)
@@ -195,9 +198,12 @@ class StudentClearanceController extends Controller
         $message = $data['status'] === 'Approved'
             ? "{$updated} registrar clearance records approved successfully."
             : "{$updated} registrar clearance records returned to pending.";
+        $title = $data['status'] === 'Approved'
+            ? 'Clearances Approved'
+            : 'Clearances Set to Pending';
 
         return $request->expectsJson()
-            ? response()->json(['success' => true, 'updated' => $updated, 'message' => $message])
-            : back()->with('flash', ['type' => 'success', 'message' => $message]);
+            ? response()->json(['success' => true, 'updated' => $updated, 'title' => $title, 'message' => $message])
+            : back()->with('flash', ['type' => 'success', 'title' => $title, 'message' => $message]);
     }
 }

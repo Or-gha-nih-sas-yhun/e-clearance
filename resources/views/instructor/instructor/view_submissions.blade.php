@@ -104,7 +104,8 @@ async function updateReview(form, student, subject) {
     });
     const data = await response.json();
     if (data.success) {
-        await window.showSuccessModal(data.message || `Review saved and clearance marked as ${status}.`);
+        const title = data.title || (status === 'Approved' ? 'Clearance Approved' : 'Clearance Set to Pending');
+        await window.showSuccessModal(data.message || `Review saved and clearance marked as ${status}.`, title);
         location.reload();
     } else {
         await window.showFeedbackModal({ title: 'Review Failed', message: data.message || 'Unable to save the review.', tone: 'danger' });

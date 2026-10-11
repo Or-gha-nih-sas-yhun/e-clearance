@@ -48,11 +48,11 @@
         <div class="clearance-table-heading"><h3>Student Clearance Requests</h3><span>{{ $students->total() }} records</span></div>
         @include('partials.clearance-bulk-toolbar', ['endpoint' => route('instructor.clearance.bulk'), 'itemType' => 'subject'])
         <div class="clearance-table-wrap">
-    <table class="clearance-table">
+    <table class="clearance-table instructor-clearance-table">
         <thead>
             <tr>
                 <th class="clearance-select-cell"><input class="clearance-select" type="checkbox" data-bulk-select-all aria-label="Select all clearance records on this page"></th>
-                <th>Student</th>
+                <th class="clearance-student-heading">Student</th>
                 <th>Program</th>
                 <th>Year / Section</th>
                 <th>Subject</th>
@@ -72,7 +72,13 @@
                 <td>
                     <span class="clearance-status {{ $row->clearance_status === 'Approved' ? 'approved' : 'pending' }}">{{ $row->clearance_status === 'Approved' ? 'Approved' : 'Pending' }}</span>
                 </td>
-                <td>{{ $row->remarks }}</td>
+                <td>
+                    @if (filled($row->remarks))
+                        {{ $row->remarks }}
+                    @else
+                        <span class="clearance-no-remark">—</span>
+                    @endif
+                </td>
                 <td>
                     <div class="d-flex gap-2 flex-wrap">
                         <button
@@ -224,7 +230,8 @@ async function setClearance(student, subject, status) {
     });
     const data = await res.json();
     if (data.success) {
-        await window.showSuccessModal(data.message || `Clearance marked as ${status}.`);
+        const title = data.title || (status === 'Approved' ? 'Clearance Approved' : 'Clearance Set to Pending');
+        await window.showSuccessModal(data.message || `Clearance marked as ${status}.`, title);
         location.reload();
     }
 }

@@ -163,14 +163,17 @@ class RegistrarReapprovalTest extends TestCase
 
     public function test_approve_then_pending_then_approve_again(): void
     {
-        $this->setStatus('Approved');
+        $firstApproval = $this->setStatus('Approved');
+        $firstApproval->assertSessionHas('flash', fn (array $flash) => $flash['title'] === 'Clearance Approved');
         $this->assertSame('Approved', $this->registrarStatus(), 'first approve failed');
 
-        $this->setStatus('Pending');
+        $pending = $this->setStatus('Pending');
+        $pending->assertSessionHas('flash', fn (array $flash) => $flash['title'] === 'Clearance Set to Pending');
         $this->assertSame('Pending', $this->registrarStatus(), 'revert to pending failed');
 
         $response = $this->setStatus('Approved');
         $response->assertSessionHasNoErrors();
+        $response->assertSessionHas('flash', fn (array $flash) => $flash['title'] === 'Clearance Approved');
         $this->assertSame('Approved', $this->registrarStatus(), 'RE-APPROVE FAILED');
     }
 }

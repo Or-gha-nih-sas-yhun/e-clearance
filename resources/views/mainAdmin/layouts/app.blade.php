@@ -14,6 +14,7 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <link href="{{ asset('css/portal-enhancements.css') }}" rel="stylesheet">
     </head>
     <body class="font-sans antialiased">
         <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -36,5 +37,6 @@
         @include('partials.action-feedback-modal')
         <script src="{{ asset('js/protected-page-history.js') }}"></script>
         <script src="{{ asset('js/auth-feedback-modals.js') }}"></script>
+        <script src="{{ asset('js/portal-enhancements.js') }}" data-inactivity-timeout="60000"></script>
     </body>
 </html>

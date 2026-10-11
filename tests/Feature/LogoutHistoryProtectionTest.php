@@ -139,6 +139,32 @@ class LogoutHistoryProtectionTest extends TestCase
         }
     }
 
+    public function test_background_logout_returns_the_login_destination_without_a_page_redirect(): void
+    {
+        $student = StudentAccount::create([
+            'student_id' => 'IDLE-STUDENT-001',
+            'firstname' => 'Idle',
+            'lastname' => 'Student',
+            'email' => 'idle-student@example.test',
+            'password' => 'Strong-Password-123!',
+            'program' => 'BSIT',
+            'year_level' => '4',
+            'section' => 'A',
+            'student_type' => 'Regular',
+        ]);
+
+        $response = $this->actingAs($student, 'student')->postJson(route('student.logout'));
+
+        $response
+            ->assertOk()
+            ->assertJson([
+                'message' => 'You have been logged out successfully.',
+                'redirect' => route('student.login'),
+            ])
+            ->assertHeader('Clear-Site-Data', '"cache"');
+        $this->assertGuest('student');
+    }
+
     public function test_logging_out_one_portal_keeps_another_portal_signed_in(): void
     {
         $student = StudentAccount::create([

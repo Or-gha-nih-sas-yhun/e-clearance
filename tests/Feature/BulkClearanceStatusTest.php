@@ -92,7 +92,9 @@ class BulkClearanceStatusTest extends TestCase
         $this->postJson(route('office.clearance.bulk-status'), [
             'student_ids' => ['S-001'],
             'status' => 'Approved',
-        ])->assertOk()->assertJsonPath('updated', 1);
+        ])->assertOk()
+            ->assertJsonPath('updated', 1)
+            ->assertJsonPath('title', 'Clearances Approved');
 
         $this->assertDatabaseHas('office_clearance_status', ['student_id' => 'S-001', 'office_role' => 'library', 'status' => 'Approved']);
         $this->actingAs($office, 'office');
@@ -119,7 +121,9 @@ class BulkClearanceStatusTest extends TestCase
         $this->postJson(route('treasurer.clearance.bulk-status'), [
             'student_ids' => ['S-001'],
             'status' => 'Approved',
-        ])->assertOk()->assertJsonPath('updated', 1);
+        ])->assertOk()
+            ->assertJsonPath('updated', 1)
+            ->assertJsonPath('title', 'Clearances Approved');
 
         $this->actingAs($treasurer, 'treasurer');
         $response = $this->postJson(route('treasurer.clearance.bulk-status'), [
@@ -161,7 +165,9 @@ class BulkClearanceStatusTest extends TestCase
         $this->postJson(route('registrar.student-clearance.bulk-status'), [
             'student_ids' => ['S-001', 'S-002'],
             'status' => 'Approved',
-        ])->assertOk()->assertJsonPath('updated', 2);
+        ])->assertOk()
+            ->assertJsonPath('updated', 2)
+            ->assertJsonPath('title', 'Clearances Approved');
 
         $this->assertSame(2, DB::table('office_clearance_status')->where('office_role', 'registrar')->where('status', 'Approved')->count());
     }
@@ -179,7 +185,9 @@ class BulkClearanceStatusTest extends TestCase
         $this->postJson(route('instructor.clearance.bulk'), [
             'items' => [['student' => 'S-001', 'subject' => 10]],
             'status' => 'Approved',
-        ])->assertOk()->assertJsonPath('updated', 1);
+        ])->assertOk()
+            ->assertJsonPath('updated', 1)
+            ->assertJsonPath('title', 'Clearances Approved');
         $this->assertDatabaseHas('clearance_status', ['student_id' => 'S-001', 'subject_id' => 10, 'status' => 'Approved']);
 
         $this->actingAs($instructor, 'instructor');

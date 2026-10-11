@@ -1,12 +1,19 @@
 @php
     $actionFeedback = session('flash');
+    $status = session('status');
+    $statusMessage = match ($status) {
+        'profile-updated' => 'Profile information updated successfully.',
+        'password-updated' => 'Password updated successfully.',
+        'verification-link-sent' => 'A new verification link has been sent.',
+        default => $status,
+    };
 
     if (!is_array($actionFeedback) || empty($actionFeedback['message'])) {
         $actionFeedback = session('login_success')
             ? ['type' => 'success', 'title' => 'Login Successful', 'message' => session('login_success')]
             : (session('success')
                 ? ['type' => 'success', 'message' => session('success')]
-                : (session('status') ? ['type' => 'success', 'message' => session('status')] : null));
+                : ($statusMessage ? ['type' => 'success', 'message' => $statusMessage] : null));
     }
 @endphp
 
@@ -121,7 +128,7 @@
 </style>
 
 <div class="feedback-modal-overlay" id="feedbackModalOverlay" aria-hidden="true">
-    <section class="feedback-modal success" id="feedbackModal" role="dialog" aria-modal="true" aria-labelledby="feedbackModalTitle" aria-describedby="feedbackModalMessage">
+    <section class="feedback-modal success" id="feedbackModal" role="alertdialog" aria-modal="true" aria-labelledby="feedbackModalTitle" aria-describedby="feedbackModalMessage" data-sweet-alert>
         <div class="feedback-modal-body">
             <button class="feedback-modal-close" id="feedbackModalClose" type="button" aria-label="Close message"><i class="bi bi-x-lg"></i></button>
             <div class="feedback-modal-icon" id="feedbackModalIcon"><i class="bi bi-check-lg"></i></div>
@@ -184,10 +191,26 @@
         return new Promise(resolve => { resolver = resolve; });
     };
 
-    window.showSuccessModal = (messageText, titleText = 'Success!') => window.showFeedbackModal({
+    const sweetAlertFire = (options = {}) => {
+        const settings = typeof options === 'string' ? { text: options } : options;
+        return window.showFeedbackModal({
+            title: settings.title,
+            message: settings.text || settings.message,
+            tone: settings.icon || settings.tone || 'success',
+            confirmText: settings.confirmButtonText,
+            cancelText: settings.cancelButtonText,
+            confirmation: Boolean(settings.showCancelButton),
+        }).then(isConfirmed => ({ isConfirmed, isDismissed: !isConfirmed }));
+    };
+
+    if (!window.Swal || typeof window.Swal.fire !== 'function') {
+        window.Swal = { ...(window.Swal || {}), fire: sweetAlertFire };
+    }
+
+    window.showSuccessModal = (messageText, titleText = 'Success!') => window.Swal.fire({
         title: titleText,
-        message: messageText,
-        tone: 'success',
+        text: messageText,
+        icon: 'success',
     });
 
     window.showConfirmationModal = (options = {}) => window.showFeedbackModal({

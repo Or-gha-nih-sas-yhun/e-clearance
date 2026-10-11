@@ -61,9 +61,11 @@
         @media(max-width:560px){.page{gap:10px;padding:12px}.school-logo-frame{width:64px;height:64px;padding:4px}.brand{gap:11px}.brand h1{font-size:1.1rem}.tagline{margin-top:4px;font-size:.72rem}.login-card{min-height:min(72vh,560px);padding:20px 17px;border-radius:25px}.role-badge{width:62px;height:62px;margin-bottom:9px;border-width:8px;font-size:1.45rem}.login-heading h2{font-size:1.5rem}.login-heading p{margin:5px 0 14px;font-size:.8rem}.field{margin-bottom:10px}.field input,.field select{height:50px}.form-options{margin:10px 2px 14px}.login-button{min-height:49px}.copyright{margin-top:7px}.captcha-row{grid-template-columns:1fr 42px}.captcha-image{width:100%;object-fit:cover}.captcha-answer{grid-column:1/-1}}
         @media(max-height:680px){.page{padding-top:12px;padding-bottom:12px}.login-card{min-height:auto;padding-top:20px;padding-bottom:20px}.role-badge{width:58px;height:58px;margin-bottom:8px;border-width:7px;font-size:1.35rem}.login-heading p{margin:4px 0 12px}.field{margin-bottom:9px}.field input,.field select{height:48px}.form-options{margin:9px 2px 12px}.copyright{display:none}}
     </style>
+    <link href="{{ asset('css/portal-enhancements.css') }}" rel="stylesheet">
 </head>
 <body>
 @include('partials.app-shell-body')
+@include('partials.action-feedback-modal')
 @php
     $firstError = null;
     if (isset($errors) && is_object($errors) && method_exists($errors, 'any') && $errors->any()) $firstError = $errors->first();

@@ -197,6 +197,7 @@
     <link href="{{ asset('css/student_portal_chrome.css') }}" rel="stylesheet">
     @stack('styles')
     <link href="{{ asset('css/portal_page_indicator.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/portal-enhancements.css') }}" rel="stylesheet">
 </head>
 <body class="student-portal-theme portal-chrome-theme @yield('theme-body-class') {{ request()->routeIs('registrar.*', 'office.*', 'treasurer.*') ? 'campus-glass-theme' : '' }} {{ str_contains((string) request()->userAgent(), 'MCCStudentAndroid/') ? 'student-android-app' : '' }}">
 @include('partials.app-shell-body')
@@ -649,6 +650,7 @@ setInterval(loadNotifications, 30000);
 </script>
 <script src="{{ asset('js/protected-page-history.js') }}"></script>
 <script src="{{ asset('js/auth-feedback-modals.js') }}"></script>
+<script src="{{ asset('js/portal-enhancements.js') }}" data-inactivity-timeout="60000"></script>
 @stack('scripts')
 </body>
 </html>

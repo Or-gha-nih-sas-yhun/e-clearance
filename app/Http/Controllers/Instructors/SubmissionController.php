@@ -162,7 +162,13 @@ class SubmissionController extends Controller
             ]);
         }
 
-        return response()->json(['success' => true, 'message' => "Clearance {$data['status']}."]);
+        return response()->json([
+            'success' => true,
+            'title' => $data['status'] === 'Approved' ? 'Clearance Approved' : 'Clearance Set to Pending',
+            'message' => $data['status'] === 'Approved'
+                ? 'The student clearance request was approved successfully.'
+                : 'The student clearance request was set to pending successfully.',
+        ]);
     }
 
     // POST /instructor/remarks/{remark}  (ajax_edit_remark)

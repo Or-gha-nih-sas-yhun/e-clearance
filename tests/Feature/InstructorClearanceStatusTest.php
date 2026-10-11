@@ -118,6 +118,7 @@ class InstructorClearanceStatusTest extends TestCase
         $response = $controller->setClearance($request);
 
         $this->assertTrue($response->getData()->success);
+        $this->assertSame('Clearance Set to Pending', $response->getData()->title);
         $this->assertDatabaseHas('clearance_status', [
             'student_id' => 'student-1',
             'subject_id' => 42,
@@ -142,6 +143,7 @@ class InstructorClearanceStatusTest extends TestCase
         $response = $controller->setClearance($request);
 
         $this->assertTrue($response->getData()->success);
+        $this->assertSame('Clearance Approved', $response->getData()->title);
         $this->assertDatabaseHas('clearance_status', [
             'student_id' => 'student-1',
             'subject_id' => 42,

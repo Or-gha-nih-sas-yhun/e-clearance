@@ -76,6 +76,7 @@
     <link href="{{ asset('css/student_portal_chrome.css') }}" rel="stylesheet">
     @stack('styles')
     <link href="{{ asset('css/main_admin_portal.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/portal-enhancements.css') }}" rel="stylesheet">
 </head>
 <body class="student-portal-theme portal-chrome-theme admin-glass-theme main-admin-portal">
 @include('partials.app-shell-body')
@@ -633,6 +634,7 @@ document.addEventListener('click', function(event) {
 </script>
 <script src="{{ asset('js/protected-page-history.js') }}"></script>
 <script src="{{ asset('js/auth-feedback-modals.js') }}"></script>
+<script src="{{ asset('js/portal-enhancements.js') }}" data-inactivity-timeout="60000"></script>
 <script src="{{ asset('js/chart_card_viewer.js') }}"></script>
 @stack('scripts')
 </body>

@@ -66,7 +66,13 @@ class ClearanceController extends Controller
             ]);
         }
 
-        return response()->json(['success' => true, 'message' => "Clearance {$status}."]);
+        return response()->json([
+            'success' => true,
+            'title' => $status === 'Approved' ? 'Clearance Approved' : 'Clearance Set to Pending',
+            'message' => $status === 'Approved'
+                ? 'The student clearance request was approved successfully.'
+                : 'The student clearance request was set to pending successfully.',
+        ]);
     }
 
     // POST /instructor/clearance/bulk  (was bulk_update.php)
@@ -141,7 +147,10 @@ class ClearanceController extends Controller
         $message = $data['status'] === 'Approved'
             ? "{$updated} instructor clearance records approved successfully."
             : "{$updated} instructor clearance records returned to pending.";
+        $title = $data['status'] === 'Approved'
+            ? 'Clearances Approved'
+            : 'Clearances Set to Pending';
 
-        return response()->json(['success' => true, 'updated' => $updated, 'message' => $message]);
+        return response()->json(['success' => true, 'updated' => $updated, 'title' => $title, 'message' => $message]);
     }
 }

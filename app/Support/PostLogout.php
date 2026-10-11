@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -9,14 +10,20 @@ class PostLogout
 {
     private const SESSION_KEY = 'security.redirect_history_to_landing';
 
-    public static function response(Request $request, string $loginRoute): RedirectResponse
+    public static function response(Request $request, string $loginRoute): JsonResponse|RedirectResponse
     {
         // Keep the history marker limited to the portal that logged out. Other
         // portal sessions can stay active in the same browser without clearing it.
         $request->session()->put(self::sessionKey($loginRoute), true);
 
-        $response = redirect()->route($loginRoute)
-            ->with('status', 'You have been logged out successfully.');
+        $message = 'You have been logged out successfully.';
+        $loginUrl = route($loginRoute);
+        $response = $request->expectsJson()
+            ? response()->json([
+                'message' => $message,
+                'redirect' => $loginUrl,
+            ])
+            : redirect()->to($loginUrl)->with('status', $message);
         $response->headers->set('Cache-Control', 'private, no-store, no-cache, must-revalidate, max-age=0');
         $response->headers->set('Pragma', 'no-cache');
         $response->headers->set('Expires', '0');

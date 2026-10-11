@@ -85,7 +85,8 @@
                         refresh();
                         return;
                     }
-                    await window.showSuccessModal(data.message || `${data.updated} clearance records updated successfully.`);
+                    const title = data.title || (status === 'Approved' ? 'Clearances Approved' : 'Clearances Set to Pending');
+                    await window.showSuccessModal(data.message || `${data.updated} clearance records updated successfully.`, title);
                     window.location.reload();
                 } catch (error) {
                     await window.showFeedbackModal({ title: 'Bulk Update Failed', message: 'Unable to update the selected clearances right now. Please try again.', tone: 'danger' });
