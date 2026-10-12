@@ -17,7 +17,7 @@
 <div class="filter-bar">
     <form method="GET" action="{{ route('registrar.index') }}">
         <div class="row g-2 align-items-end">
-            <div class="col-md-6"><input type="search" name="search" placeholder="Search name, email or ID" value="{{ request('search') }}"></div>
+            <div class="col-md-6"><input type="search" name="search" placeholder="Search name or ID" value="{{ request('search') }}"></div>
             <div class="col-md-2"><button type="submit" class="btn-filter w-100">Search</button></div>
         </div>
     </form>

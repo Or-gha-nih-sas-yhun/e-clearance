@@ -37,4 +37,39 @@
         field.addEventListener('input', () => formatStudentId(field));
         formatStudentId(field);
     });
+
+    const searchSelector = 'input[type="search"], input[name="search"]';
+    const allowedSearchCharacters = /[^\p{L}\p{N} -]/gu;
+    const cleanSearch = value => value.replace(allowedSearchCharacters, '');
+    const isSearchField = field => field instanceof HTMLInputElement
+        && (field.type === 'search' || field.type === 'text')
+        && field.matches(searchSelector);
+
+    const prepareSearchField = field => {
+        if (!isSearchField(field)) return;
+        if (!field.title) field.title = 'Use letters, numbers, spaces, and hyphens only.';
+        field.value = cleanSearch(field.value);
+    };
+
+    document.querySelectorAll(searchSelector).forEach(prepareSearchField);
+    document.addEventListener('focusin', event => {
+        prepareSearchField(event.target);
+    });
+    document.addEventListener('input', event => {
+        const field = event.target;
+        if (!isSearchField(field) || event.isComposing) return;
+
+        const cleaned = cleanSearch(field.value);
+        if (cleaned === field.value) return;
+
+        const cursor = cleanSearch(field.value.slice(0, field.selectionStart ?? field.value.length)).length;
+        field.value = cleaned;
+        field.setSelectionRange(cursor, cursor);
+    }, true);
+    document.addEventListener('compositionend', event => {
+        const field = event.target;
+        if (!isSearchField(field)) return;
+        field.value = cleanSearch(field.value);
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+    }, true);
 })();

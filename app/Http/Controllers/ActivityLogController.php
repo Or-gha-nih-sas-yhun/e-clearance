@@ -163,8 +163,8 @@ class ActivityLogController extends Controller
 
                 $query->where(fn (Builder $match) => $match
                     ->where('actor_id', 'like', $term)
-                    ->orWhere('ip_address', 'like', $term)
-                    ->orWhere('event', 'like', $term)
+                    ->orWhereRaw("REPLACE(REPLACE(ip_address, '.', ''), ':', '') LIKE ?", [$term])
+                    ->orWhereRaw("REPLACE(REPLACE(event, '.', ''), '_', '') LIKE ?", [$term])
                     ->orWhere('user_agent', 'like', $term)
                     ->orWhere('subject_id', 'like', $term));
             });

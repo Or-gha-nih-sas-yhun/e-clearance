@@ -49,7 +49,7 @@
                 </select>
             </div>
             <div class="col-md-6">
-                <input type="text" name="search" placeholder="🔎 Search Student ID / Microsoft account" value="{{ request('search') }}">
+                <input type="text" name="search" placeholder="🔎 Search student ID or account name" value="{{ request('search') }}">
             </div>
             <div class="col-md-3">
                 <button type="submit" class="btn-filter w-100">Go</button>

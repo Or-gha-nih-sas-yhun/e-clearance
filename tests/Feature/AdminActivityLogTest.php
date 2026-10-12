@@ -136,6 +136,8 @@ class AdminActivityLogTest extends TestCase
 
         $this->assertSame(1, count($this->events($admin, ['search' => '2023-0002'])));
         $this->assertSame(1, count($this->events($admin, ['search' => '192.168.1.4'])));
+        $this->assertSame(1, count($this->events($admin, ['search' => '19216814'])));
+        $this->assertSame(2, count($this->events($admin, ['search' => 'authentication.login'])));
     }
 
     public function test_activity_page_shows_browser_location_when_it_was_shared(): void

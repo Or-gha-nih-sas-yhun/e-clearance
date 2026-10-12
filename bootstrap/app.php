@@ -6,6 +6,7 @@ use App\Http\Middleware\ForceHttps;
 use App\Http\Middleware\InstructorAuthenticate;
 use App\Http\Middleware\LimitRequestFieldLengths;
 use App\Http\Middleware\MainAdminAuth;
+use App\Http\Middleware\NormalizeSearchFilters;
 use App\Http\Middleware\NormalizeStudentIds;
 use App\Http\Middleware\OfficeAuthenticate;
 use App\Http\Middleware\PreventBackHistory;
@@ -36,6 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
         }
         $middleware->web(append: [
             NormalizeStudentIds::class,
+            NormalizeSearchFilters::class,
             LimitRequestFieldLengths::class,
             CaptureClientLocation::class,
             'throttle:web',

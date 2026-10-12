@@ -103,7 +103,7 @@
                 <input type="date" name="to" value="{{ request('to') }}" aria-label="To date">
             </div>
             <div class="col-md-2">
-                <input type="text" name="search" placeholder="🔎 Account ID, IP, or event" value="{{ request('search') }}">
+                <input type="text" name="search" placeholder="Account ID, IP digits, or event" value="{{ request('search') }}">
             </div>
             <div class="col-md-2">
                 <button type="submit" class="btn-filter w-100">Go</button>

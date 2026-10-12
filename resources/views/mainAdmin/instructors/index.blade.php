@@ -18,7 +18,7 @@
     <form method="GET" action="{{ route('instructors.index') }}">
         <div class="row g-2 align-items-end">
             <div class="col-md-3">
-                <input type="search" name="search" placeholder="Search name, email, ID" value="{{ request('search') }}">
+                <input type="search" name="search" placeholder="Search name or ID" value="{{ request('search') }}">
             </div>
             <div class="col-md-3">
                 <select name="department">

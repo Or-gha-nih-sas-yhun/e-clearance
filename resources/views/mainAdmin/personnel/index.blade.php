@@ -17,7 +17,7 @@
 <div class="filter-bar">
     <form method="GET" action="{{ route('personnel.index') }}">
         <div class="row g-2 align-items-end">
-            <div class="col-md-4"><input type="search" name="search" placeholder="Search name, email or ID" value="{{ request('search') }}"></div>
+            <div class="col-md-4"><input type="search" name="search" placeholder="Search name or ID" value="{{ request('search') }}"></div>
             <div class="col-md-4">
                 <select name="role">
                     <option value="">All Roles</option>

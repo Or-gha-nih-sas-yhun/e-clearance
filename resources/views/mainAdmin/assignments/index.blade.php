@@ -193,7 +193,7 @@
         <form method="GET" action="{{ route('assignments.index') }}">
             @if($department !== null)<input type="hidden" name="department" value="{{ $department }}">@endif
             <div class="row g-2 align-items-end">
-                <div class="col-md-4"><input type="search" name="search" placeholder="Search instructor by name, ID or email" value="{{ $search }}"></div>
+                <div class="col-md-4"><input type="search" name="search" placeholder="Search instructor by name or ID" value="{{ $search }}"></div>
                 <div class="col-md-3">
                     <select name="year_level">
                         <option value="">All Years</option>

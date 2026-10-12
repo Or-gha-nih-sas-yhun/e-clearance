@@ -49,7 +49,7 @@
                 </select>
             </div>
             <div class="col-md-4">
-                <input type="text" name="search" placeholder="🔎 Search ID / Name / Email"
+                <input type="text" name="search" placeholder="🔎 Search ID or name"
                        value="{{ request('search') }}">
             </div>
             <div class="col-md-2">
